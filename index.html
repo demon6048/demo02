@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KGB STREAMING v4.1 | Vertical</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (Excel Export) -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #f1f5f9; }
+        .chart-container { position: relative; width: 100%; height: 300px; }
+        .nav-item.active { background-color: #4338ca; color: white; font-weight: 600; border-left: 4px solid #a5b4fc; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
+        .refunded-row { background-color: #fee2e2 !important; }
+        .refunded-text { color: #991b1b !important; text-decoration: line-through; opacity: 0.6; }
+        /* Scrollbar Personalizado */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-800 bg-slate-50">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm z-20 h-20 flex-shrink-0">
+        <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-indigo-500 font-bold text-xl shadow-lg border border-slate-700">
+                    <i class="fa-solid fa-play"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tighter leading-none uppercase">
+                        KGB <span class="text-indigo-600">STREAMING</span>
+                    </h1>
+                    <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Sistema Local v4.1</p>
+                </div>
+            </div>
+            <!-- Botón de Reset de Emergencia -->
+            <div>
+                <button onclick="hardReset()" class="text-xs text-red-300 hover:text-red-500 font-bold uppercase tracking-widest transition">Resetear Todo</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Wrapper -->
+    <div class="flex-1 overflow-hidden relative flex">
+        
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col z-10 shadow-2xl border-r border-slate-800">
+            <div class="p-6">
+                <div class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-6">Navegación</div>
+                <nav class="space-y-2">
+                    <button onclick="switchAppTab('pos')" id="nav-pos" class="nav-item w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition active bg-indigo-700 text-white font-bold shadow-lg group">
+                        <i class="fa-solid fa-cart-shopping w-5 mr-3 group-hover:scale-110 transition"></i> <span>Venta Nueva</span>
+                    </button>
+                    <button onclick="switchAppTab('history')" id="nav-history" class="nav-item w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition group">
+                        <i class="fa-solid fa-list-check w-5 mr-3 group-hover:scale-110 transition"></i> <span>Historial</span>
+                    </button>
+                    <button onclick="switchAppTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition group">
+                        <i class="fa-solid fa-chart-pie w-5 mr-3 group-hover:scale-110 transition"></i> <span>Reportes</span>
+                    </button>
+                    <button onclick="switchAppTab('config')" id="nav-config" class="nav-item w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition text-slate-400 hover:text-white group">
+                        <i class="fa-solid fa-sliders w-5 mr-3 group-hover:scale-110 transition"></i> <span>Configuración</span>
+                    </button>
+                </nav>
+            </div>
+            <div class="mt-auto p-5 bg-black/20 border-t border-slate-800 text-center">
+                <p class="text-xs text-slate-500 font-bold">Base de Datos: Local</p>
+                <p class="text-sm font-extrabold text-indigo-400 mt-0.5">José Vizcarra</p>
+            </div>
+        </aside>
+
+        <!-- App Content -->
+        <main class="flex-1 bg-slate-50 overflow-y-auto p-4 md:p-8 relative">
+            
+            <!-- TAB: POS -->
+            <div id="tab-pos" class="app-tab max-w-4xl mx-auto">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+                        <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-cash-register text-indigo-600"></i> REGISTRAR VENTA</h2>
+                        <div class="px-3 py-1 bg-slate-100 rounded text-xs font-bold text-slate-500">ID: <span id="pos-id">#--</span></div>
+                    </div>
+                    <div class="p-8 space-y-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Vendedor</label><select id="pos-seller" class="w-full border-gray-200 bg-slate-50 rounded-xl p-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition"></select></div>
+                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Plataforma</label><select id="pos-product" onchange="updatePosCalc()" class="w-full border-gray-200 bg-slate-50 rounded-xl p-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition"></select></div>
+                        </div>
+                        <!-- Calc Card -->
+                        <div class="bg-slate-900 rounded-2xl p-8 shadow-xl relative overflow-hidden text-white group">
+                            <div class="absolute top-0 right-0 w-40 h-40 bg-indigo-600 rounded-full filter blur-[60px] opacity-30 -mr-10 -mt-10 group-hover:opacity-40 transition duration-1000"></div>
+                            <div class="grid grid-cols-3 gap-8 text-center relative z-10">
+                                <div><p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">COSTO BASE</p><input id="pos-cost" readonly class="w-full bg-transparent text-center font-mono text-xl text-slate-400 font-bold outline-none" value="0.00"></div>
+                                <div class="relative border-x border-slate-700"><p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-2">PRECIO VENTA</p><div class="flex items-center justify-center"><span class="text-white font-bold text-lg mr-1">S/</span><input id="pos-price" type="number" oninput="reCalcProfitOnly()" class="w-24 text-center font-mono text-3xl text-white font-bold bg-transparent outline-none border-b-2 border-indigo-500 focus:border-white transition" value="0.00"></div></div>
+                                <div><p class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-2">GANANCIA</p><p id="pos-profit" class="font-mono text-2xl text-emerald-400 font-bold mt-1">0.00</p></div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Nombre Cliente</label><input type="text" id="pos-client" placeholder="Ej. Juan Pérez" class="w-full border-gray-200 p-3.5 rounded-xl text-sm outline-none focus:border-indigo-500 transition border"></div>
+                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Teléfono / WPP</label><input type="text" id="pos-phone" placeholder="999..." class="w-full border-gray-200 p-3.5 rounded-xl text-sm outline-none focus:border-indigo-500 transition border"></div>
+                        </div>
+                        <button onclick="submitSale()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/30 transition transform active:scale-[0.98] uppercase tracking-widest text-sm flex justify-center items-center gap-2"><i class="fa-solid fa-check-circle"></i> Confirmar Venta</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: HISTORY -->
+            <div id="tab-history" class="app-tab hidden max-w-7xl mx-auto">
+                <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600"><i class="fa-solid fa-list"></i></span>
+                    Historial de Ventas
+                </h2>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Desde</label><input type="date" id="filter-start" onchange="renderHistoryTable()" class="w-full border-gray-200 rounded-lg p-2.5 text-sm bg-slate-50 outline-none focus:border-indigo-500 border"></div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Hasta</label><input type="date" id="filter-end" onchange="renderHistoryTable()" class="w-full border-gray-200 rounded-lg p-2.5 text-sm bg-slate-50 outline-none focus:border-indigo-500 border"></div>
+                        <div><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Vendedor</label><select id="filter-seller" onchange="renderHistoryTable()" class="w-full border-gray-200 rounded-lg p-2.5 text-sm bg-slate-50 outline-none focus:border-indigo-500 border"></select></div>
+                        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-bold shadow transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-file-excel"></i> Exportar</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- TABLE -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[600px]">
+                        <div class="overflow-auto flex-1">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0 shadow-sm z-10 font-bold tracking-wider">
+                                    <tr>
+                                        <th class="px-6 py-4">Producto & Detalles</th>
+                                        <th class="px-6 py-4">Cliente</th>
+                                        <th class="px-6 py-4 text-right">Comisión</th>
+                                        <th class="px-6 py-4 text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table-body" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Summary -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-slate-900 text-white p-8 rounded-3xl shadow-xl sticky top-6 border border-slate-700">
+                            <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fa-solid fa-wallet text-indigo-400"></i> Caja (Filtro)</h3>
+                            <div class="space-y-4 mb-8">
+                                <div class="flex justify-between border-b border-slate-700 pb-3"><span class="text-slate-400 text-sm">Ventas Netas</span><span class="font-mono font-bold text-lg" id="liq-total">S/ 0.00</span></div>
+                                <div class="flex justify-between border-b border-slate-700 pb-3"><span class="text-slate-400 text-sm">Válidas</span><span class="font-mono font-bold text-lg" id="liq-count">0</span></div>
+                                <div class="flex justify-between border-b border-slate-700 pb-3"><span class="text-red-400 text-sm">Reembolsos</span><span class="font-mono font-bold text-lg text-red-400" id="liq-refunds">0</span></div>
+                            </div>
+                            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl p-6 shadow-lg">
+                                <p class="text-[10px] text-indigo-100 font-bold uppercase mb-1 tracking-widest">PAGO COMISIÓN</p>
+                                <p class="text-3xl font-black text-white font-mono tracking-tight" id="liq-comm">S/ 0.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: CONFIG (VERTICAL ORDER) -->
+            <div id="tab-config" class="app-tab hidden max-w-4xl mx-auto pb-10">
+                <h2 class="text-2xl font-black text-slate-800 mb-6">CONFIGURACIÓN</h2>
+                
+                <div class="flex flex-col gap-8">
+                    
+                    <!-- 1. PLATAFORMAS (Primero) -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2 text-xs uppercase tracking-widest border-b pb-4">
+                            <i class="fa-solid fa-layer-group text-indigo-500"></i> Catálogo de Plataformas
+                        </h3>
+                        <!-- Formulario Agregar Producto -->
+                        <div class="bg-indigo-50 p-5 rounded-xl mb-6 border border-indigo-100 flex flex-col md:flex-row gap-4">
+                            <input type="text" id="new-prod-name" placeholder="Nombre (Ej. Netflix Premium)" class="flex-grow border border-indigo-200 bg-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <div class="flex gap-3">
+                                <input type="number" id="new-prod-cost" class="w-24 border border-indigo-200 bg-white rounded-lg px-3 py-3 text-sm" placeholder="Costo">
+                                <input type="number" id="new-prod-price" class="w-24 border border-indigo-200 bg-white rounded-lg px-3 py-3 text-sm" placeholder="Venta">
+                                <button onclick="addProduct()" class="bg-indigo-600 text-white px-6 rounded-lg font-bold text-sm shadow-md hover:bg-indigo-700 transition">Agregar</button>
+                            </div>
+                        </div>
+                        <!-- Lista Productos -->
+                        <div class="overflow-y-auto max-h-[400px] border border-gray-100 rounded-xl">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-50 text-slate-500 font-bold sticky top-0 z-10">
+                                    <tr><th class="p-4">Plataforma</th><th class="p-4">Costo</th><th class="p-4">Venta</th><th class="p-4 text-right">Acción</th></tr>
+                                </thead>
+                                <tbody id="config-prod-list" class="divide-y divide-gray-100 text-slate-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. VENDEDORES (Segundo) -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2 text-xs uppercase tracking-widest border-b pb-4">
+                            <i class="fa-solid fa-users text-indigo-500"></i> Equipo de Ventas
+                        </h3>
+                        <!-- Formulario Agregar Vendedor -->
+                        <div class="bg-slate-50 p-5 rounded-xl mb-6 border border-slate-100 flex flex-col md:flex-row gap-4">
+                            <input type="text" id="new-seller-name" placeholder="Nombre completo del vendedor" class="flex-grow border border-gray-200 bg-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-400">
+                            <div class="flex gap-3">
+                                <input type="tel" id="new-seller-phone" placeholder="Celular (519...)" class="w-48 border border-gray-200 bg-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-400">
+                                <button onclick="addSeller()" class="bg-slate-800 text-white px-6 rounded-lg font-bold text-sm shadow-md hover:bg-slate-900 transition">Registrar</button>
+                            </div>
+                        </div>
+                        <!-- Lista Vendedores -->
+                        <div class="overflow-y-auto max-h-[300px] pr-2">
+                            <ul id="config-seller-list" class="space-y-2"></ul>
+                        </div>
+                    </div>
+
+                    <!-- 3. DISTRIBUCIÓN (Tercero) -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2 text-xs uppercase tracking-widest border-b pb-4">
+                            <i class="fa-solid fa-percent text-indigo-500"></i> Distribución de Ganancias
+                        </h3>
+                        <div class="space-y-6">
+                            <div>
+                                <label class="flex justify-between text-xs font-bold text-slate-500 mb-2">Admin: <span id="display-admin-pct" class="text-indigo-600 font-black text-lg">60%</span></label>
+                                <input type="range" id="range-admin" min="0" max="100" value="60" oninput="updateConfigRange('admin')" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer accent-indigo-600">
+                            </div>
+                            <div>
+                                <label class="flex justify-between text-xs font-bold text-slate-500 mb-2">Vendedor: <span id="display-seller-pct" class="text-emerald-600 font-black text-lg">40%</span></label>
+                                <input type="range" id="range-seller" min="0" max="100" value="40" oninput="updateConfigRange('seller')" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer accent-emerald-500">
+                            </div>
+                            <button onclick="saveConfigPercentages()" class="w-full py-4 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase hover:bg-black transition shadow-lg tracking-widest">
+                                Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB: DASHBOARD -->
+            <div id="tab-dashboard" class="app-tab hidden max-w-6xl mx-auto">
+                <h2 class="text-2xl font-black text-slate-800 mb-6">REPORTES</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"><p class="text-[10px] text-slate-400 uppercase font-bold mb-2">Ventas Totales</p><p id="dash-total" class="text-2xl font-black text-slate-800">S/ 0.00</p></div>
+                    <div class="bg-white p-6 rounded-2xl border border-indigo-100 shadow-sm"><p class="text-[10px] text-indigo-500 uppercase font-bold mb-2">Utilidad Admin</p><p id="dash-admin" class="text-2xl font-black text-indigo-600">S/ 0.00</p></div>
+                    <div class="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm"><p class="text-[10px] text-emerald-500 uppercase font-bold mb-2">Pago Vendedores</p><p id="dash-seller" class="text-2xl font-black text-emerald-600">S/ 0.00</p></div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"><p class="text-[10px] text-slate-400 uppercase font-bold mb-2">Ventas Válidas</p><p id="dash-count" class="text-2xl font-black text-slate-800">0</p></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"><h3 class="font-bold text-slate-700 mb-6 text-xs uppercase tracking-widest">Ranking Vendedores</h3><div class="chart-container"><canvas id="chartSellers"></canvas></div></div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"><h3 class="font-bold text-slate-700 mb-6 text-xs uppercase tracking-widest">Mix Productos</h3><div class="chart-container"><canvas id="chartProducts"></canvas></div></div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center backdrop-blur-sm"><div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl transform scale-100 transition"><h3 class="text-lg font-bold text-slate-800 mb-2">Confirmar Devolución</h3><p class="text-sm text-slate-500 mb-6">Se anulará la comisión. ¿Continuar?</p><div class="flex justify-end gap-3"><button onclick="closeConfirm()" class="px-4 py-2 text-slate-600 font-bold text-sm hover:bg-slate-100 rounded-lg">Cancelar</button><button id="btn-do-refund" class="px-4 py-2 bg-red-600 text-white font-bold text-sm hover:bg-red-700 rounded-lg shadow-md">Sí, Anular</button></div></div></div>
+    <div id="toast" class="fixed bottom-8 right-8 bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-y-40 transition-transform duration-500 z-50 flex items-center gap-4 border border-slate-700"><div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white"><i class="fa-solid fa-check"></i></div><div><h4 class="font-bold text-sm text-white">¡Éxito!</h4><p id="toast-msg" class="text-xs text-slate-400 font-medium">Operación completada</p></div></div>
+
+    <script>
+        // --- DATA STORE ---
+        const defaultData = {
+            config: { adminPct: 0.60, sellerPct: 0.40 },
+            sellers: [],
+            products: [],
+            sales: []
+        };
+
+        // LOAD FROM LOCAL STORAGE ON STARTUP
+        let DB = JSON.parse(localStorage.getItem('kgb_db_v4')) || defaultData;
+
+        // --- CORE UI ---
+        function saveData() {
+            localStorage.setItem('kgb_db_v4', JSON.stringify(DB));
+        }
+
+        function hardReset() {
+            if(confirm("¡PELIGRO! ¿Borrar TODOS los datos y reiniciar de cero?")) {
+                localStorage.removeItem('kgb_db_v4');
+                location.reload();
+            }
+        }
+
+        function initApp() {
+            renderPosSelects();
+            renderFilterSeller();
+            renderSellerList();
+            renderProductList();
+            loadConfigUI();
+            updatePosCalc();
+            document.getElementById('pos-id').innerText = '#' + Math.floor(Math.random()*10000);
+        }
+
+        function switchAppTab(t){
+            document.querySelectorAll('.app-tab').forEach(e=>e.classList.add('hidden'));
+            document.getElementById('tab-'+t).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active','bg-indigo-700','text-white','font-bold','shadow-lg'));
+            document.getElementById('nav-'+t).classList.add('active','bg-indigo-700','text-white','font-bold','shadow-lg');
+            if(t==='history'){renderFilterSeller();renderHistoryTable();}
+            if(t==='dashboard')updateDashboard();
+        }
+        function showToast(m){const t=document.getElementById('toast');document.getElementById('toast-msg').innerText=m;t.classList.remove('translate-y-40');setTimeout(()=>t.classList.add('translate-y-40'),3000);}
+
+        // --- POS LOGIC ---
+        function renderPosSelects() {
+            const sSel = document.getElementById('pos-seller');
+            const pSel = document.getElementById('pos-product');
+            const currS = sSel.value;
+            const currP = pSel.value;
+
+            sSel.innerHTML = DB.sellers.map(x=>`<option value="${x.name}">${x.name}</option>`).join('');
+            pSel.innerHTML = '<option value="">Seleccione...</option>' + DB.products.map((x,i)=>`<option value="${i}">${x.name}</option>`).join('');
+            
+            if(currS) sSel.value = currS;
+            if(currP && pSel.querySelector(`option[value="${currP}"]`)) pSel.value = currP;
+        }
+
+        function updatePosCalc(){
+            const idx=document.getElementById('pos-product').value; 
+            if(idx==="") {
+                document.getElementById('pos-cost').value = '0.00';
+                document.getElementById('pos-price').value = '0.00';
+                document.getElementById('pos-profit').innerText = '0.00';
+                return;
+            }
+            const p=DB.products[idx]; 
+            document.getElementById('pos-cost').value=p.cost.toFixed(2);
+            let val=parseFloat(document.getElementById('pos-price').value); 
+            if(val===0||isNaN(val)) { val=p.price; document.getElementById('pos-price').value=val.toFixed(2); }
+            
+            reCalcProfitOnly();
+        }
+
+        function reCalcProfitOnly() {
+            const cost = parseFloat(document.getElementById('pos-cost').value) || 0;
+            const price = parseFloat(document.getElementById('pos-price').value) || 0;
+            const prof = price - cost;
+            document.getElementById('pos-profit').innerText = prof.toFixed(2);
+        }
+
+        function submitSale(){
+            const idx=document.getElementById('pos-product').value; if(idx==="")return alert("Selecciona Plataforma");
+            const sellerName = document.getElementById('pos-seller').value;
+            if(!sellerName) return alert("Crea un vendedor primero en Configuración");
+
+            const p=DB.products[idx]; 
+            const price=parseFloat(document.getElementById('pos-price').value); 
+            const profit=price-p.cost;
+            
+            // Get seller phone for record
+            const sellerObj = DB.sellers.find(s => s.name === sellerName);
+            
+            DB.sales.push({
+                id:Math.floor(Date.now()/1000), 
+                date:new Date().toISOString(), 
+                seller: sellerName,
+                sellerPhone: sellerObj ? sellerObj.phone : '', 
+                product:p.name, 
+                client:document.getElementById('pos-client').value, 
+                phone:document.getElementById('pos-phone').value, 
+                price:price, cost:p.cost, profit:profit, 
+                admin:profit*DB.config.adminPct, 
+                sellerComm:profit*DB.config.sellerPct, 
+                status:'active'
+            });
+            saveData();
+            showToast("Venta Registrada"); 
+            document.getElementById('pos-client').value=''; 
+            document.getElementById('pos-phone').value=''; 
+            document.getElementById('pos-id').innerText='#'+Math.floor(Math.random()*10000);
+        }
+
+        // --- HISTORY ---
+        function renderFilterSeller() {
+            const f=document.getElementById('filter-seller'); 
+            const c=f.value; 
+            f.innerHTML='<option value="">-- Todos --</option>'+DB.sellers.map(x=>`<option value="${x.name}">${x.name}</option>`).join(''); 
+            f.value=c;
+        }
+        function getFilteredData() {
+            const s=document.getElementById('filter-start').value, e=document.getElementById('filter-end').value, sel=document.getElementById('filter-seller').value;
+            let d=DB.sales; 
+            if(s)d=d.filter(x=>x.date.split('T')[0]>=s); 
+            if(e)d=d.filter(x=>x.date.split('T')[0]<=e); 
+            if(sel)d=d.filter(x=>x.seller===sel); 
+            return d;
+        }
+
+        function renderHistoryTable() {
+            const data=getFilteredData();
+            let tc=0, ts=0, rc=0; 
+            data.forEach(x=>{ if(x.status!=='refunded'){tc+=x.sellerComm; ts+=x.price;}else{rc++;} });
+            
+            document.getElementById('liq-comm').innerText='S/ '+tc.toFixed(2); 
+            document.getElementById('liq-total').innerText='S/ '+ts.toFixed(2); 
+            document.getElementById('liq-count').innerText=data.length-rc; 
+            document.getElementById('liq-refunds').innerText=rc;
+            
+            data.sort((a,b)=>new Date(b.date)-new Date(a.date));
+            const tbody=document.getElementById('history-table-body');
+            tbody.innerHTML=data.map(s=>{
+                const isR=s.status==='refunded';
+                const safeS = JSON.stringify(s).replace(/"/g, '&quot;');
+                return `<tr class="border-b border-gray-100 transition group ${isR?'refunded-row':'hover:bg-slate-50'}">
+                    <td class="px-6 py-4 align-top ${isR?'refunded-text':''}">
+                        <div class="font-black text-indigo-900 text-sm mb-1 uppercase tracking-wide">${s.product}</div>
+                        <div class="flex items-center gap-2 text-xs text-slate-500 font-medium"><span>${new Date(s.date).toLocaleDateString()}</span><span class="w-1 h-1 bg-slate-300 rounded-full"></span><span>${s.seller}</span></div>
+                    </td>
+                    <td class="px-6 py-4 align-top ${isR?'refunded-text':''}">
+                        <div class="font-bold text-slate-700 text-sm mb-1">${s.client || 'Sin Nombre'}</div>
+                        <div class="text-xs text-slate-400 font-mono">${s.phone || '--'}</div>
+                    </td>
+                    <td class="px-6 py-4 text-right align-middle">
+                        ${isR ? '<span class="text-xs font-bold text-red-800">S/ 0.00</span>' : `<div class="font-black text-emerald-600 text-lg">S/ ${s.sellerComm.toFixed(2)}</div>`}
+                    </td>
+                    <td class="px-6 py-4 text-center align-middle">
+                        ${isR ? '<span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">Reembolsado</span>' 
+                              : `<div class="flex justify-center gap-2">
+                                   <button onclick="confirmRefund(${s.id})" title="Devolución" class="w-8 h-8 rounded-lg border border-gray-200 text-red-400 hover:bg-red-50 hover:text-red-600 transition flex items-center justify-center"><i class="fa-solid fa-rotate-left"></i></button>
+                                   <button onclick='copyVoucher(${safeS})' title="Copiar" class="w-8 h-8 rounded-lg border border-gray-200 text-blue-500 hover:bg-blue-50 hover:text-blue-700 transition flex items-center justify-center"><i class="fa-regular fa-copy"></i></button>
+                                   <button onclick='sendWhatsapp(${safeS})' title="WhatsApp" class="w-8 h-8 rounded-lg border border-gray-200 text-green-500 hover:bg-green-50 hover:text-green-700 transition flex items-center justify-center"><i class="fa-brands fa-whatsapp font-bold"></i></button>
+                                 </div>`}
+                    </td>
+                </tr>`
+            }).join('');
+        }
+
+        // --- ACTIONS ---
+        function copyVoucher(s) {
+            const text = `🎫 KGB STREAMING - REGISTRO\n---------------------------\n🆔 ID: #${s.id}\n📆 Fecha: ${new Date(s.date).toLocaleDateString()}\n📺 Servicio: ${s.product}\n💰 TU COMISIÓN: S/ ${s.sellerComm.toFixed(2)}\n---------------------------\n✅ Validado en Sistema`;
+            const t = document.createElement("textarea"); t.value = text; t.style.position="fixed"; t.style.opacity="0"; document.body.appendChild(t); t.focus(); t.select();
+            try { document.execCommand('copy'); showToast("Voucher Copiado"); } catch(e){ showToast("Error al copiar"); }
+            document.body.removeChild(t);
+        }
+        function sendWhatsapp(s) {
+            let phone = s.sellerPhone;
+            if(!phone) { const sellerObj = DB.sellers.find(sel => sel.name === s.seller); if(sellerObj) phone = sellerObj.phone; }
+            if(!phone) return alert("No hay teléfono registrado para este vendedor.");
+            const text = `🎫 KGB STREAMING - REGISTRO\n---------------------------\n🆔 ID: #${s.id}\n📆 Fecha: ${new Date(s.date).toLocaleDateString()}\n📺 Servicio: ${s.product}\n💰 TU COMISIÓN: S/ ${s.sellerComm.toFixed(2)}\n---------------------------\n✅ Validado en Sistema`;
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+        }
+        
+        let refId=null; function confirmRefund(id){ refId=id; document.getElementById('confirm-modal').classList.remove('hidden'); }
+        function closeConfirm(){ document.getElementById('confirm-modal').classList.add('hidden'); refId=null; }
+        document.getElementById('btn-do-refund').onclick=function(){ 
+            if(refId){ const s=DB.sales.find(x=>x.id===refId); if(s){s.status='refunded'; saveData(); showToast("Anulado"); renderHistoryTable();} } 
+            closeConfirm(); 
+        };
+
+        function exportToExcel() {
+            const data=getFilteredData(); if(data.length===0) return alert("Sin datos");
+            const ws=XLSX.utils.json_to_sheet(data.map(x=>({Fecha:new Date(x.date).toLocaleDateString(), Vendedor:x.seller, Cliente:x.client, Telefono:x.phone, Plataforma:x.product, Comision:x.status==='refunded'?0:x.sellerComm, Precio:x.status==='refunded'?0:x.price, Estado:x.status==='refunded'?'DEV':'OK'})));
+            const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Ventas"); XLSX.writeFile(wb,"KGB_Reporte.xlsx");
+        }
+
+        // --- CONFIG & DELETE FIX ---
+        function loadConfigUI() {
+            document.getElementById('range-admin').value = DB.config.adminPct * 100;
+            document.getElementById('range-seller').value = DB.config.sellerPct * 100;
+            updateConfigRange('admin'); renderSellerList(); renderProductList();
+        }
+        function updateConfigRange(src) {
+            const a=document.getElementById('range-admin'),b=document.getElementById('range-seller'); let v=parseInt(src==='admin'?a.value:b.value); if(src==='admin')b.value=100-v; else a.value=100-v; document.getElementById('display-admin-pct').innerText=a.value+'%'; document.getElementById('display-seller-pct').innerText=b.value+'%';
+        }
+        function saveConfigPercentages(){ DB.config.adminPct=document.getElementById('range-admin').value/100; DB.config.sellerPct=document.getElementById('range-seller').value/100; saveData(); showToast("Guardado"); updatePosCalc(); }
+        
+        function renderSellerList() { 
+            document.getElementById('config-seller-list').innerHTML=DB.sellers.map((s)=>`
+            <li class="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm group">
+                <div><span class="font-bold text-slate-700 block">${s.name}</span><span class="text-xs text-slate-400 font-mono"><i class="fa-solid fa-phone mr-1"></i>${s.phone||'--'}</span></div>
+                <button onclick="delSeller(${s.id}, '${s.name}')" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash fa-lg"></i></button>
+            </li>`).join(''); 
+        }
+        function addSeller() { 
+            const n=document.getElementById('new-seller-name').value; const ph=document.getElementById('new-seller-phone').value;
+            if(n){ DB.sellers.push({id: Date.now(), name:n, phone:ph}); document.getElementById('new-seller-name').value=''; document.getElementById('new-seller-phone').value=''; saveData(); renderSellerList(); renderPosSelects(); showToast("Agregado"); } 
+        }
+        function delSeller(id, name){ 
+            if(confirm(`¿Eliminar a ${name}?`)){
+                DB.sellers = DB.sellers.filter(s => s.id !== id);
+                saveData(); 
+                renderSellerList(); 
+                renderPosSelects(); // Important update
+                showToast("Eliminado");
+            } 
+        }
+
+        function renderProductList() { document.getElementById('config-prod-list').innerHTML=DB.products.map((p,i)=>`<tr class="border-b border-gray-50 hover:bg-slate-50 transition"><td class="p-4 font-bold text-slate-700">${p.name}</td><td class="p-4 text-slate-500">S/ ${p.cost}</td><td class="p-4 font-bold text-indigo-600">S/ ${p.price}</td><td class="p-4 text-right"><button onclick="delProd(${p.id})" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button></td></tr>`).join(''); }
+        function addProduct() { const n=document.getElementById('new-prod-name').value, c=parseFloat(document.getElementById('new-prod-cost').value), p=parseFloat(document.getElementById('new-prod-price').value); if(n&&c&&p){ DB.products.push({id:Date.now(), name:n,cost:c,price:p}); document.getElementById('new-prod-name').value=''; saveData(); renderProductList(); renderPosSelects(); showToast("Agregado"); } }
+        function delProd(id){ if(confirm('¿Borrar?')){ DB.products=DB.products.filter(p=>p.id!==id); saveData(); renderProductList(); renderPosSelects(); } }
+
+        // --- DASHBOARD ---
+        function updateDashboard(){
+            let t=0,a=0,s=0,c=0; const ss={},pp={}; DB.sales.forEach(x=>{ if(x.status!=='refunded'){ t+=x.price; a+=x.admin; s+=x.sellerComm; c++; if(!ss[x.seller])ss[x.seller]=0; ss[x.seller]+=x.sellerComm; if(!pp[x.product])pp[x.product]=0; pp[x.product]+=1; } });
+            document.getElementById('dash-total').innerText='S/ '+t.toFixed(2); document.getElementById('dash-admin').innerText='S/ '+a.toFixed(2); document.getElementById('dash-seller').innerText='S/ '+s.toFixed(2); document.getElementById('dash-count').innerText=c;
+            const ctxS=document.getElementById('chartSellers').getContext('2d'); new Chart(ctxS,{type:'bar',data:{labels:Object.keys(ss),datasets:[{label:'Comisión',data:Object.values(ss),backgroundColor:'#4f46e5',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+            const ctxP=document.getElementById('chartProducts').getContext('2d'); new Chart(ctxP,{type:'doughnut',data:{labels:Object.keys(pp),datasets:[{data:Object.values(pp),backgroundColor:['#6366f1','#10b981','#f59e0b','#ec4899','#8b5cf6'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}});
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
