@@ -103,8 +103,7 @@
                 <div>
                     <label class="text-xs text-slate-600 block mb-1">Tipo de Documento</label>
                     <select id="docType" class="w-full border rounded text-xs p-1.5">
-                        <option value="generic">Genérico</option>
-                        <option value="sunat" selected>Perú (Factura/Boleta SUNAT)</option>
+                        <option value="generic">Genérico / Perú</option>
                     </select>
                 </div>
             </div>
@@ -249,14 +248,14 @@
                     const processedImage = await app.ocr.preprocessImage(currentFileObj.file);
                     
                     // 2. Ejecutar Tesseract
-                    app.ui.log("Ejecutando OCR...");
+                    app.ui.log("Ejecutando OCR (esto puede tardar)...");
                     const { text } = await app.ocr.runTesseract(processedImage, (progress) => {
                         currentFileObj.progress = progress;
                         // Opcional: mostrar progreso por fila
                     });
 
                     // 3. Extracción de Datos
-                    app.ui.log("Analizando texto extraído...");
+                    app.ui.log("Analizando datos extraídos...");
                     currentFileObj.data.ocr_text = text;
                     const extractedData = app.extractor.parse(text, document.getElementById('docType').value);
                     
@@ -318,12 +317,12 @@
                                     let color = avg;
                                     
                                     // Aumentar contraste simple
-                                    const contrastFactor = 1.2; 
+                                    const contrastFactor = 1.3; 
                                     color = contrastFactor * (color - 128) + 128;
                                     
                                     // Binarización para modo 'best'
                                     if (mode === 'best') {
-                                        color = color > 160 ? 255 : 0; 
+                                        color = color > 150 ? 255 : 0; 
                                     }
 
                                     data[i] = color;     // R
@@ -350,9 +349,8 @@
 
                 runTesseract: async (imageBlob, progressCallback) => {
                     const worker = await Tesseract.createWorker('spa'); 
-                    // Nota: En prod, especificar logger para ver progreso
+                    // spa suele ser suficiente, eng a veces añade ruido en docs latinos
                     
-                    // Configurar parámetros (whitelist opcional si solo buscamos números, pero facturas tienen texto)
                     await worker.setParameters({
                         tessedit_pageseg_mode: Tesseract.PSM.AUTO,
                     });
@@ -363,109 +361,165 @@
                 }
             },
 
-            // --- MÓDULO EXTRACTOR (HEURÍSTICAS) ---
+            // --- MÓDULO EXTRACTOR (HEURÍSTICAS MEJORADAS) ---
             extractor: {
                 cleanPrice: (str) => {
                     if (!str) return '';
-                    // Eliminar símbolos de moneda y espacios
-                    let clean = str.replace(/[S\/$€USDsoles]/gi, '').trim();
-                    // Intentar normalizar formato 1.200,00 vs 1,200.00
-                    // Asumimos que si hay coma y punto, el último es el decimal.
-                    // Si solo hay coma o punto, y son 2 decimales, es separador decimal.
-                    // Estandarizar a formato JS: sin separador de miles, punto para decimales.
+                    // 1. Limpieza agresiva de caracteres no numéricos
+                    // Mantiene números, puntos, comas y espacios (para corregir separaciones)
+                    let clean = str.replace(/[^0-9.,\s]/g, '').trim();
                     
-                    // Caso 1: 1.000,00
-                    if (clean.includes('.') && clean.includes(',') && clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
-                        clean = clean.replace(/\./g, '').replace(',', '.');
-                    }
-                    // Caso 2: 1,000.00
-                    else if (clean.includes(',') && clean.includes('.') && clean.lastIndexOf('.') > clean.lastIndexOf(',')) {
-                        clean = clean.replace(/,/g, '');
-                    }
-                    // Caso 3: 1200,00
-                    else if (clean.includes(',') && !clean.includes('.')) {
-                        clean = clean.replace(',', '.');
+                    // 2. Corregir errores OCR comunes como espacios dentro de números "1 200.00"
+                    // Si hay un espacio rodeado de dígitos, quitarlo
+                    clean = clean.replace(/\s(?=\d)/g, ''); 
+                    clean = clean.replace(/\s/g, ''); // Eliminar restos
+
+                    // 3. Normalizar separadores decimales/miles
+                    // Caso A: 1.200,50 (Europeo/Latam)
+                    if (clean.includes(',') && clean.includes('.')) {
+                        if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
+                             // Coma al final -> Decimal
+                             clean = clean.replace(/\./g, '').replace(',', '.');
+                        } else {
+                             // Punto al final -> Decimal (1,200.50)
+                             clean = clean.replace(/,/g, '');
+                        }
+                    } 
+                    // Caso B: Solo comas (1,200 o 100,50)
+                    else if (clean.includes(',')) {
+                        // Si termina en coma y 2 digitos (ej: 100,50), es decimal
+                        if (/,\d{2}$/.test(clean)) {
+                            clean = clean.replace(',', '.');
+                        } else {
+                            // Si no, asumimos miles y borramos (ej: 1,200 -> 1200)
+                            clean = clean.replace(/,/g, '');
+                        }
                     }
                     
-                    return parseFloat(clean).toFixed(2);
+                    const num = parseFloat(clean);
+                    return isNaN(num) ? '' : num.toFixed(2);
                 },
 
                 parse: (text, type) => {
                     const lines = text.split('\n');
                     const data = {};
 
-                    // 1. RUC / DNI
-                    // Busca 11 dígitos empezando por 10 o 20 (RUC Perú)
+                    // --- 1. FECHA (Lógica Ampliada) ---
+                    // Intento 1: Etiqueta explícita
+                    const dateLabelRegex = /(?:FECHA|EMISION|EMISIÓN|VENCIMIENTO)[^0-9\n]*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})/i;
+                    let dateMatch = text.match(dateLabelRegex);
+                    
+                    if (dateMatch) {
+                         data.fecha_emision = dateMatch[1].replace(/-/g, '/').replace(/\./g, '/');
+                    } else {
+                         // Intento 2: Buscar cualquier fecha válida dd/mm/aaaa aislada
+                         // Filtramos años razonables (2020-2030) para evitar falsos positivos
+                         const simpleDateRegex = /\b(0?[1-9]|[12][0-9]|3[01])[\/\-.](0?[1-9]|1[0-2])[\/\-.]((?:20)?\d{2})\b/;
+                         dateMatch = text.match(simpleDateRegex);
+                         if (dateMatch) {
+                             let year = dateMatch[3];
+                             if (year.length === 2) year = '20' + year;
+                             data.fecha_emision = `${dateMatch[1]}/${dateMatch[2]}/${year}`;
+                         }
+                    }
+
+                    // --- 2. MONTOS (Lógica "Ventana" y Fallback) ---
+                    // Regex flexible para precios
+                    const priceRegex = /\b\d{1,3}(?:[.,\s]?\d{3})*(?:[.,]\d{2})\b/g;
+
+                    const findValueForField = (keywords) => {
+                         // Buscar en todo el texto línea por línea
+                         for (let i = 0; i < lines.length; i++) {
+                             const line = lines[i].toUpperCase();
+                             if (keywords.some(k => line.includes(k))) {
+                                 // Prioridad 1: Número en la misma línea
+                                 let matches = line.match(priceRegex);
+                                 if (matches && matches.length > 0) return app.extractor.cleanPrice(matches[matches.length - 1]);
+                                 
+                                 // Prioridad 2: Número en la línea siguiente (muy común)
+                                 if (i + 1 < lines.length) {
+                                     let nextMatches = lines[i+1].match(priceRegex);
+                                     if (nextMatches && nextMatches.length > 0) return app.extractor.cleanPrice(nextMatches[0]);
+                                 }
+                             }
+                         }
+                         return null;
+                    };
+
+                    data.igv = findValueForField(["IGV", "I.G.V", "IMPUESTO", "18%"]);
+                    data.subtotal = findValueForField(["SUBTOTAL", "OP. GRAVADA", "GRAVADA", "VALOR VENTA"]);
+                    data.detraccion = findValueForField(["DETRACCI", "SPOT"]);
+                    data.total = findValueForField(["TOTAL", "IMPORTE TOTAL", "NETO A PAGAR", "MONTO TOTAL"]);
+
+                    // --- FALLBACK TOTAL (CRÍTICO) ---
+                    // Si no se encontró el Total por palabra clave, buscar el número más grande del documento
+                    // que parezca un precio. (El Total suele ser el monto mayor en una factura).
+                    if (!data.total || data.total === "0.00") {
+                         const allPrices = text.match(priceRegex);
+                         if (allPrices) {
+                             const validPrices = allPrices
+                                .map(p => parseFloat(app.extractor.cleanPrice(p)))
+                                .filter(n => !isNaN(n) && n > 0);
+                             
+                             if (validPrices.length > 0) {
+                                 const maxPrice = Math.max(...validPrices);
+                                 // Evitar coger el RUC como precio si por error se parseó como tal (aunque el regex busca decimales)
+                                 if (maxPrice < 10000000) { 
+                                    data.total = maxPrice.toFixed(2);
+                                 }
+                             }
+                         }
+                    }
+
+                    // --- 3. RUC y SERIE ---
+                    // RUC explícito
                     const rucMatch = text.match(/(?:RUC|R\.U\.C\.?)\s*[:.\-]?\s*([12]0\d{9})/i);
                     if (rucMatch) {
                         data.ruc_dni = rucMatch[1];
-                        data.tipo = "FACTURA"; // Si hay RUC suele ser factura o boleta con RUC
+                        data.tipo = "FACTURA";
                     } else {
-                        // Buscar DNI
-                        const dniMatch = text.match(/(?:DNI|D\.N\.I\.?)\s*[:.\-]?\s*(\d{8})/i);
-                        if (dniMatch) data.ruc_dni = dniMatch[1];
+                         // Fallback: Buscar 11 dígitos que empiecen por 10 o 20 aislados
+                         const rawRuc = text.match(/\b(20\d{9}|10\d{9})\b/);
+                         if (rawRuc) {
+                             data.ruc_dni = rawRuc[1];
+                             data.tipo = "FACTURA";
+                         } else {
+                            // DNI
+                            const dniMatch = text.match(/(?:DNI|D\.N\.I\.?)\s*[:.\-]?\s*(\d{8})/i);
+                            if (dniMatch) {
+                                data.ruc_dni = dniMatch[1];
+                                data.tipo = "BOLETA";
+                            }
+                         }
                     }
 
-                    // 2. FECHA
-                    // dd/mm/yyyy o dd-mm-yyyy
-                    const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-                    if (dateMatch) {
-                        data.fecha_emision = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
-                    }
-
-                    // 3. SERIE Y NÚMERO
-                    // F001-0000234 o E001-123
                     const serieMatch = text.match(/([FB][A-Z0-9]{2,3})\s*-\s*(\d{1,8})/);
                     if (serieMatch) {
                         data.serie = serieMatch[1];
                         data.numero = serieMatch[2];
-                        data.tipo = data.serie.startsWith('F') ? 'FACTURA' : 'BOLETA';
+                        if(!data.tipo) data.tipo = data.serie.startsWith('F') ? 'FACTURA' : 'BOLETA';
                     }
 
-                    // 4. TOTALES Y IMPORTES
-                    // Estrategia: Buscar palabras clave y tomar el número que esté a la derecha o abajo
-                    
-                    const findAmount = (keywords) => {
-                        // Regex para encontrar montos monetarios simples
-                        const amountRegex = /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/; 
-                        
-                        for (let i = 0; i < lines.length; i++) {
-                            const line = lines[i].toUpperCase();
-                            if (keywords.some(k => line.includes(k))) {
-                                // Buscar número en la misma línea
-                                let match = line.match(amountRegex);
-                                if (match) return app.extractor.cleanPrice(match[0]);
-                                
-                                // Si no, buscar en la siguiente línea (a veces el formato es vertical)
-                                if (i + 1 < lines.length) {
-                                    let nextMatch = lines[i+1].match(amountRegex);
-                                    if (nextMatch) return app.extractor.cleanPrice(nextMatch[0]);
-                                }
-                            }
-                        }
-                        return '';
-                    };
+                    // --- 4. Moneda ---
+                    if (text.match(/USD|DOLARES|\$|US\$/i)) data.moneda = 'USD';
+                    else data.moneda = 'PEN';
 
-                    data.total = findAmount(["TOTAL", "IMPORTE TOTAL", "NETO A PAGAR"]);
-                    data.igv = findAmount(["IGV", "I.G.V", "18%"]);
-                    data.subtotal = findAmount(["SUBTOTAL", "OP. GRAVADA", "VALOR VENTA", "BASE IMPONIBLE"]);
-                    data.detraccion = findAmount(["DETRACCI", "SPOT"]);
-
-                    // 5. MONEDA
-                    if (text.match(/USD|DOLARES|\$/i)) data.moneda = 'USD';
-                    else if (text.match(/SOLES|PEN|S\//i)) data.moneda = 'PEN';
-                    else data.moneda = 'PEN'; // Default Perú
-
-                    // 6. RAZÓN SOCIAL (Intento básico)
-                    // Generalmente las primeras líneas. Si encontramos el RUC, la línea anterior suele ser la empresa.
-                    if (rucMatch) {
-                        const rucIndex = text.indexOf(rucMatch[0]);
-                        const textBefore = text.substring(0, rucIndex).split('\n');
-                        // Tomar la línea más larga no vacía antes del RUC
-                        const candidates = textBefore.filter(l => l.trim().length > 4 && !l.includes('electronic'));
-                        if (candidates.length > 0) {
-                            data.razon_social = candidates[candidates.length - 1].trim();
-                        }
+                    // --- 5. Razón Social (Básica) ---
+                    // Buscar texto antes del RUC
+                    if (data.ruc_dni) {
+                         const index = text.indexOf(data.ruc_dni);
+                         if (index > -1) {
+                             // Tomamos texto anterior, revertimos líneas
+                             const preText = text.substring(0, index).split('\n').reverse();
+                             for(let l of preText) {
+                                 l = l.trim();
+                                 // Heurística: Línea larga, mayúsculas, sin palabras clave técnicas
+                                 if (l.length > 5 && !l.includes('RUC') && !l.includes('FACTURA') && !l.match(/\d/)) {
+                                     data.razon_social = l;
+                                     break;
+                                 }
+                             }
+                         }
                     }
 
                     return data;
