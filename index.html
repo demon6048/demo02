@@ -45,8 +45,8 @@
         <div class="flex items-center gap-2">
             <i class="ph ph-receipt text-3xl text-orange-600"></i>
             <div>
-                <h1 class="text-xl font-bold text-slate-800">Facturación Pardos <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded ml-2">v2.0</span></h1>
-                <p class="text-xs text-slate-500">Sistema de extracción y digitalización</p>
+                <h1 class="text-xl font-bold text-slate-800">Facturación Pardos <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded ml-2">v2.2</span></h1>
+                <p class="text-xs text-slate-500">Sistema de extracción con Concepto y Series E</p>
             </div>
         </div>
         
@@ -118,18 +118,19 @@
                         <tr>
                             <th class="w-10 text-center"><i class="ph ph-gear"></i></th>
                             <th class="w-20">Estado</th>
-                            <th class="w-28">Fecha</th> <!-- Más ancho para fecha -->
-                            <th class="w-28">RUC/DNI</th>
-                            <th class="w-40">Razón Social</th>
+                            <th class="w-24">Fecha</th>
+                            <th class="w-24">RUC/DNI</th>
+                            <th class="w-32">Razón Social</th>
+                            <th class="w-32">Concepto</th> <!-- Nueva Columna -->
                             <th class="w-20">Tipo</th>
                             <th class="w-16">Serie</th>
-                            <th class="w-20">Número</th>
-                            <th class="w-16">Moneda</th>
-                            <th class="w-24 text-right">Total</th> <!-- Total movido antes para visibilidad -->
+                            <th class="w-16">Número</th>
+                            <th class="w-12">Mon</th>
+                            <th class="w-20 text-right">Total</th>
                             <th class="w-20 text-right text-slate-400">Subtotal</th>
                             <th class="w-20 text-right text-slate-400">IGV</th>
-                            <th class="w-32">Archivo</th>
-                            <th class="w-40">Observaciones</th>
+                            <th class="w-24">Archivo</th>
+                            <th class="w-32">Observaciones</th>
                         </tr>
                     </thead>
                     <tbody id="dataTableBody">
@@ -150,7 +151,7 @@
 
     <script>
         const app = {
-            version: '2.0',
+            version: '2.2',
             state: {
                 files: [],
                 isProcessing: false,
@@ -190,7 +191,7 @@
                     status: 'pending',
                     progress: 0,
                     data: {
-                        fecha_emision: '', ruc_dni: '', razon_social: '', tipo: '',
+                        fecha_emision: '', ruc_dni: '', razon_social: '', concepto: '', tipo: '',
                         serie: '', numero: '', moneda: 'PEN', subtotal: '', igv: '',
                         total: '', detraccion: '', observaciones: '', ocr_text: ''
                     },
@@ -308,7 +309,7 @@
                 runTesseract: async (imageBlob) => {
                     const worker = await Tesseract.createWorker('spa'); 
                     await worker.setParameters({
-                        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyz.:,/-$ %()áéíóúÁÉÍÓÚ', // Lista blanca para reducir ruido
+                        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyz.:,/-$ %()áéíóúÁÉÍÓÚ', // Lista blanca
                         tessedit_pageseg_mode: Tesseract.PSM.AUTO,
                     });
                     const ret = await worker.recognize(imageBlob);
@@ -320,25 +321,20 @@
             extractor: {
                 cleanPrice: (str) => {
                     if (!str) return '';
-                    // Eliminar caracteres no numéricos excepto puntos, comas y espacios
                     let clean = str.replace(/[^0-9.,\s]/g, '').trim();
-                    // Eliminar espacios internos (1 200 -> 1200)
                     clean = clean.replace(/\s/g, '');
 
                     if (!clean) return '';
 
-                    // Heurística de separador decimal
-                    // Si tiene coma y punto (1.200,00 o 1,200.00)
                     if (clean.includes(',') && clean.includes('.')) {
-                        if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) { // 1.200,00 (Coma decimal)
+                        if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
                             clean = clean.replace(/\./g, '').replace(',', '.');
-                        } else { // 1,200.00 (Punto decimal)
+                        } else {
                             clean = clean.replace(/,/g, '');
                         }
                     } else if (clean.includes(',')) {
-                        // Solo comas: si tiene 2 decimales al final, es coma decimal (100,00)
                         if (/,\d{2}$/.test(clean)) clean = clean.replace(',', '.');
-                        else clean = clean.replace(/,/g, ''); // 1,200 -> 1200
+                        else clean = clean.replace(/,/g, '');
                     }
                     
                     const num = parseFloat(clean);
@@ -349,22 +345,21 @@
                     const lines = text.split('\n');
                     const data = {};
 
-                    // 1. FECHA (MEJORADO: Más tolerante a formatos)
-                    // Busca dd/mm/aaaa, dd-mm-aaaa, dd.mm.aaaa con posibles espacios
+                    // 1. FECHA
                     const dateRegex = /\b(0?[1-9]|[12][0-9]|3[01])\s*[\/\-.,|]\s*(0?[1-9]|1[0-2])\s*[\/\-.,|]\s*((?:20)\d{2})\b/;
                     const dateMatch = text.match(dateRegex);
                     if (dateMatch) {
                         data.fecha_emision = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
                     }
 
-                    // 2. MONTOS (MEJORADO: Búsqueda por palabras clave + Fallback inteligente)
-                    const priceRegex = /\b\d{1,3}(?:[.,\s]?\d{3})*(?:[.,]\d{2})\b/g; // Patrón genérico de precio
+                    // 2. MONTOS
+                    const priceRegex = /\b\d{1,3}(?:[.,\s]?\d{3})*(?:[.,]\d{2})\b/g;
 
                     const findAmount = (keywords) => {
                         for (let line of lines) {
                             if (keywords.some(k => line.toUpperCase().includes(k))) {
                                 const matches = line.match(priceRegex);
-                                if (matches) return app.extractor.cleanPrice(matches[matches.length - 1]); // Tomar el último número de la línea
+                                if (matches) return app.extractor.cleanPrice(matches[matches.length - 1]);
                             }
                         }
                         return null;
@@ -374,23 +369,20 @@
                     data.igv = findAmount(["IGV", "I.G.V", "IMPUESTO"]);
                     data.subtotal = findAmount(["SUBTOTAL", "OP. GRAVADA", "VALOR VENTA", "BASE"]);
 
-                    // FALLBACK TOTAL: Si no encontró total por palabra clave, buscar el número más probable
                     if (!data.total || data.total == "0.00") {
                         const allNumbers = text.match(priceRegex);
                         if (allNumbers) {
                             const validNumbers = allNumbers
                                 .map(n => parseFloat(app.extractor.cleanPrice(n)))
-                                .filter(n => !isNaN(n) && n > 0 && n < 500000); // Filtro: Menor a 500k para evitar RUCs o códigos
-                            
+                                .filter(n => !isNaN(n) && n > 0 && n < 500000);
                             if (validNumbers.length > 0) {
-                                // El Total suele ser el monto mayor
                                 data.total = Math.max(...validNumbers).toFixed(2);
                             }
                         }
                     }
 
                     // 3. RUC y SERIE
-                    const rucMatch = text.match(/\b(20\d{9}|10\d{9})\b/); // Busca 20xxxxxxxxx o 10xxxxxxxxx
+                    const rucMatch = text.match(/\b(20\d{9}|10\d{9})\b/);
                     if (rucMatch) {
                         data.ruc_dni = rucMatch[1];
                         data.tipo = "FACTURA";
@@ -399,25 +391,70 @@
                         if(dniMatch) { data.ruc_dni = dniMatch[0]; data.tipo = "BOLETA"; }
                     }
 
-                    const serieMatch = text.match(/([FB][A-Z0-9]{2,3})\s*-\s*(\d{1,8})/);
+                    // MODIFICADO: Ahora soporta series que empiezan con E (ej: E001-185) además de F y B
+                    // También intenta capturar si el OCR puso un espacio (ej: "E 001")
+                    const serieMatch = text.match(/([FBE]\s?[A-Z0-9]{2,3})\s*-\s*(\d{1,8})/);
                     if (serieMatch) {
-                        data.serie = serieMatch[1];
+                        data.serie = serieMatch[1].replace(/\s/g, ''); // Quitamos espacios internos si los hay
                         data.numero = serieMatch[2];
                     }
 
-                    // 4. RAZÓN SOCIAL (Intento buscar línea antes del RUC)
+                    // 4. RAZÓN SOCIAL
                     if (data.ruc_dni) {
                         const idx = text.indexOf(data.ruc_dni);
-                        if (idx > 20) { // Si hay suficiente texto antes
+                        if (idx > 20) {
                             const preText = text.substring(0, idx).split('\n').reverse();
                             for (let l of preText) {
                                 l = l.trim();
-                                if (l.length > 5 && !/\d/.test(l) && !l.includes(':')) { // Línea sin números, ni dos puntos
+                                if (l.length > 5 && !/\d/.test(l) && !l.includes(':')) {
                                     data.razon_social = l;
                                     break;
                                 }
                             }
                         }
+                    }
+
+                    // 5. CONCEPTO (NUEVA LÓGICA)
+                    // Intentamos buscar texto relevante entre el RUC/Fecha y los totales.
+                    let startIdx = 0;
+                    let endIdx = lines.length;
+
+                    // Encontrar fin de cabecera (usando RUC o Fecha como marcador)
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].includes(data.ruc_dni) || (data.fecha_emision && lines[i].includes(data.fecha_emision))) {
+                            startIdx = i + 1; // Empezar una línea después
+                        }
+                    }
+                    if(startIdx == 0) startIdx = Math.floor(lines.length * 0.25); // Fallback
+
+                    // Encontrar inicio de pie (usando Total o Subtotal)
+                    for (let i = startIdx; i < lines.length; i++) {
+                        const l = lines[i].toUpperCase();
+                        if (l.includes("TOTAL") || l.includes("SUBTOTAL") || l.includes("SON:")) {
+                            endIdx = i;
+                            break;
+                        }
+                    }
+
+                    // Filtrar líneas candidatas
+                    const candidates = lines.slice(startIdx, endIdx).filter(l => {
+                        l = l.trim();
+                        if (l.length < 5) return false; // Muy corta
+                        if (/^\d+$/.test(l.replace(/[.,\s]/g, ''))) return false; // Solo números
+                        if (l.toUpperCase().includes("CLIENTE") || l.toUpperCase().includes("DIRECCION")) return false; // Headers comunes
+                        return true;
+                    });
+
+                    // Tomar las primeras líneas válidas como concepto
+                    if(candidates.length > 0) {
+                         // A veces la primera línea es "DESCRIPCION", saltarla
+                         let first = 0;
+                         if(["DESCRIPCION", "DETALLE", "CONCEPTO"].some(k => candidates[0].toUpperCase().includes(k))) first = 1;
+                         
+                         if(candidates[first]) {
+                            data.concepto = candidates[first].substring(0, 60); // Tomar 60 caracteres max
+                            if(candidates[first+1]) data.concepto += " " + candidates[first+1].substring(0, 30);
+                         }
                     }
 
                     return data;
@@ -431,6 +468,7 @@
                     "Fecha Emisión": f.data.fecha_emision,
                     "RUC/DNI": f.data.ruc_dni,
                     "Razón Social": f.data.razon_social,
+                    "Concepto": f.data.concepto, // Nuevo campo
                     "Tipo": f.data.tipo,
                     "Serie": f.data.serie,
                     "Número": f.data.numero,
@@ -448,13 +486,12 @@
                     return;
                 }
 
-                // Crear Libro y Hoja
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.json_to_sheet(rows);
                 
                 // Ajustar ancho de columnas
                 const wscols = [
-                    {wch:12}, {wch:12}, {wch:25}, {wch:10}, {wch:8}, {wch:10}, {wch:8}, 
+                    {wch:12}, {wch:12}, {wch:25}, {wch:30}, {wch:10}, {wch:8}, {wch:10}, {wch:8}, 
                     {wch:10}, {wch:10}, {wch:12}, {wch:10}, {wch:20}, {wch:20}
                 ];
                 ws['!cols'] = wscols;
@@ -527,7 +564,7 @@
                     const tr = document.querySelector(`tr[data-id="${id}"]`);
                     if (!tr) return;
 
-                    const fields = ['fecha_emision', 'ruc_dni', 'razon_social', 'tipo', 'serie', 'numero', 'moneda', 'subtotal', 'igv', 'total', 'detraccion', 'observaciones'];
+                    const fields = ['fecha_emision', 'ruc_dni', 'razon_social', 'concepto', 'tipo', 'serie', 'numero', 'moneda', 'subtotal', 'igv', 'total', 'detraccion', 'observaciones'];
                     fields.forEach(field => {
                         const input = tr.querySelector(`input[name="${field}"]`);
                         if(input) {
@@ -571,6 +608,7 @@
                             <td>${i('fecha_emision', f.data.fecha_emision)}</td>
                             <td>${i('ruc_dni', f.data.ruc_dni)}</td>
                             <td>${i('razon_social', f.data.razon_social)}</td>
+                            <td>${i('concepto', f.data.concepto)}</td> <!-- Campo Nuevo -->
                             <td>${i('tipo', f.data.tipo)}</td>
                             <td>${i('serie', f.data.serie)}</td>
                             <td>${i('numero', f.data.numero)}</td>
