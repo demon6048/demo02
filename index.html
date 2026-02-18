@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OCR Facturas a Excel/Sheets</title>
+    <title>Facturación Pardos - OCR</title>
     
-    <!-- Tesseract.js CDN -->
+    <!-- Tesseract.js CDN (Motor OCR) -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- SweetAlert2 para alertas bonitas -->
+    <!-- SheetJS (Para exportar a Excel .xlsx real) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- SweetAlert2 (Alertas) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Tailwind CSS (via CDN) para estilos rápidos y limpios -->
+    <!-- Tailwind CSS (Estilos) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Iconos Phosphor -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -19,7 +21,6 @@
         .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.3s; }
         .drop-zone.dragover { border-color: #3b82f6; background-color: #eff6ff; }
         
-        /* Estilos de Tabla Excel-like */
         .excel-table th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.75rem; border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
         .excel-table td { border: 1px solid #e2e8f0; padding: 4px 8px; font-size: 0.85rem; vertical-align: middle; background: white; }
         .excel-table input { width: 100%; border: none; outline: none; background: transparent; padding: 4px; font-family: monospace; font-size: 0.85rem; }
@@ -34,7 +35,6 @@
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Campos críticos vacíos */
         .validation-error { background-color: #fee2e2 !important; }
     </style>
 </head>
@@ -43,23 +43,23 @@
     <!-- HEADER -->
     <header class="bg-white shadow-sm border-b p-4 flex justify-between items-center z-10">
         <div class="flex items-center gap-2">
-            <i class="ph ph-receipt text-3xl text-blue-600"></i>
+            <i class="ph ph-receipt text-3xl text-orange-600"></i>
             <div>
-                <h1 class="text-xl font-bold text-slate-800">OCR Facturas Pro <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded ml-2">v1.2</span></h1>
-                <p class="text-xs text-slate-500">Lectura automática, validación y exportación</p>
+                <h1 class="text-xl font-bold text-slate-800">Facturación Pardos <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded ml-2">v2.0</span></h1>
+                <p class="text-xs text-slate-500">Sistema de extracción y digitalización</p>
             </div>
         </div>
         
         <div class="flex gap-3 items-center">
             <div class="flex flex-col items-end">
                 <label class="text-xs text-slate-500 font-semibold mb-1">URL Web App (Google Sheets)</label>
-                <input type="text" id="sheetsUrl" placeholder="Pegar URL del script aquí..." class="border rounded px-2 py-1 text-xs w-64 focus:ring-2 ring-blue-500 outline-none">
+                <input type="text" id="sheetsUrl" placeholder="Pegar URL del script aquí..." class="border rounded px-2 py-1 text-xs w-64 focus:ring-2 ring-orange-500 outline-none">
             </div>
-            <button onclick="app.exportToCSV()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm flex items-center gap-2 transition">
-                <i class="ph ph-file-csv"></i> CSV
+            <button onclick="app.exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm flex items-center gap-2 transition shadow-sm">
+                <i class="ph ph-microsoft-excel-logo"></i> Descargar Excel
             </button>
-            <button onclick="app.sendAllToSheets()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm flex items-center gap-2 transition">
-                <i class="ph ph-google-logo"></i> Enviar Todo
+            <button onclick="app.sendAllToSheets()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm flex items-center gap-2 transition shadow-sm">
+                <i class="ph ph-cloud-arrow-up"></i> Enviar a Nube
             </button>
         </div>
     </header>
@@ -71,49 +71,42 @@
         <aside class="w-80 bg-white border-r flex flex-col shadow-lg z-0">
             <!-- Zona de Carga -->
             <div class="p-4 border-b">
-                <div id="dropZone" class="drop-zone rounded-lg p-6 text-center cursor-pointer">
+                <div id="dropZone" class="drop-zone rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50">
                     <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
                     <i class="ph ph-upload-simple text-3xl text-slate-400 mb-2"></i>
-                    <p class="text-sm font-medium text-slate-600">Arrastra imágenes aquí</p>
-                    <p class="text-xs text-slate-400 mt-1">o clic para seleccionar</p>
+                    <p class="text-sm font-medium text-slate-600">Subir Facturas</p>
+                    <p class="text-xs text-slate-400 mt-1">Click o arrastrar imágenes</p>
                 </div>
                 
                 <div class="mt-4 space-y-2">
                     <div class="flex justify-between text-xs text-slate-600 font-semibold">
-                        <span>Progreso Global</span>
+                        <span>Cola de procesamiento</span>
                         <span id="queueCount">0/0</span>
                     </div>
                     <div class="w-full bg-slate-200 rounded-full h-2">
-                        <div id="globalProgress" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        <div id="globalProgress" class="bg-orange-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Opciones de Procesamiento -->
             <div class="p-4 bg-slate-50 border-b space-y-3">
-                <h3 class="text-xs font-bold text-slate-500 uppercase">Configuración OCR</h3>
+                <h3 class="text-xs font-bold text-slate-500 uppercase">Configuración</h3>
                 <div>
-                    <label class="text-xs text-slate-600 block mb-1">Calidad / Modo</label>
-                    <select id="ocrMode" class="w-full border rounded text-xs p-1.5">
-                        <option value="fast">Rápido (Sin pre-proceso pesado)</option>
-                        <option value="balanced" selected>Balanceado (Escala de grises + Contraste)</option>
-                        <option value="best">Detallado (Binarización + Alta Res)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-600 block mb-1">Tipo de Documento</label>
-                    <select id="docType" class="w-full border rounded text-xs p-1.5">
-                        <option value="generic">Genérico / Perú</option>
+                    <label class="text-xs text-slate-600 block mb-1">Modo de Lectura</label>
+                    <select id="ocrMode" class="w-full border rounded text-xs p-1.5 focus:border-orange-500 outline-none">
+                        <option value="balanced" selected>Normal (Recomendado)</option>
+                        <option value="best">Alta Precisión (Más lento)</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Preview (Canvas oculto para procesamiento, visible para usuario) -->
+            <!-- Preview -->
             <div class="flex-1 overflow-auto p-4 bg-slate-100 flex flex-col items-center justify-center relative">
-                <h3 class="absolute top-2 left-2 text-xs font-bold text-slate-400 z-10">VISTA PREVIA</h3>
+                <h3 class="absolute top-2 left-2 text-xs font-bold text-slate-400 z-10">VISUALIZADOR</h3>
                 <canvas id="previewCanvas" class="max-w-full shadow-md border bg-white hidden"></canvas>
                 <img id="previewImg" class="max-w-full shadow-md border bg-white object-contain h-64 w-full" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmMmY2Ii8+PC9zdmc+" alt="Vista previa">
-                <div id="logPanel" class="w-full mt-2 p-2 bg-black text-green-400 font-mono text-[10px] h-32 overflow-y-auto rounded hidden"></div>
+                <div id="logPanel" class="w-full mt-2 p-2 bg-slate-900 text-green-400 font-mono text-[10px] h-32 overflow-y-auto rounded hidden border border-slate-700"></div>
             </div>
         </aside>
 
@@ -123,71 +116,56 @@
                 <table class="w-full excel-table text-left border-collapse">
                     <thead class="sticky top-0 z-10 shadow-sm">
                         <tr>
-                            <th class="w-10 text-center"><i class="ph ph-gear"></i></th> <!-- Acciones -->
+                            <th class="w-10 text-center"><i class="ph ph-gear"></i></th>
                             <th class="w-20">Estado</th>
-                            <th class="w-24">Fecha</th>
+                            <th class="w-28">Fecha</th> <!-- Más ancho para fecha -->
                             <th class="w-28">RUC/DNI</th>
                             <th class="w-40">Razón Social</th>
                             <th class="w-20">Tipo</th>
                             <th class="w-16">Serie</th>
                             <th class="w-20">Número</th>
                             <th class="w-16">Moneda</th>
-                            <th class="w-20 text-right">Subtotal</th>
-                            <th class="w-20 text-right">IGV</th>
-                            <th class="w-24 text-right bg-blue-50">Total</th>
-                            <th class="w-20 text-right">Detracción</th>
+                            <th class="w-24 text-right">Total</th> <!-- Total movido antes para visibilidad -->
+                            <th class="w-20 text-right text-slate-400">Subtotal</th>
+                            <th class="w-20 text-right text-slate-400">IGV</th>
                             <th class="w-32">Archivo</th>
                             <th class="w-40">Observaciones</th>
                         </tr>
                     </thead>
                     <tbody id="dataTableBody">
-                        <!-- Las filas se generarán dinámicamente aquí -->
+                        <!-- Filas -->
                     </tbody>
                 </table>
             </div>
             
-            <!-- Footer con totales rápidos -->
-            <div class="h-10 border-t bg-slate-50 flex items-center px-4 justify-between text-xs text-slate-600">
+            <!-- Footer -->
+            <div class="h-10 border-t bg-slate-50 flex items-center px-4 justify-between text-xs text-slate-600 font-medium">
                 <span id="rowCount">0 Documentos</span>
                 <div class="flex gap-4">
-                    <span>Suma Total (Detectada): <strong id="sumTotal">0.00</strong></span>
+                    <span class="text-lg">Total Acumulado: <strong id="sumTotal" class="text-orange-600">0.00</strong></span>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- HIDDEN ELEMENTS -->
-    <div id="hiddenContainer" style="display:none;"></div>
-
     <script>
-        /**
-         * LÓGICA DE LA APLICACIÓN
-         * Módulos: UI, OCR, Extracción, Datos
-         */
-
         const app = {
-            version: '1.2',
+            version: '2.0',
             state: {
-                files: [], // { id, file, status, data: {}, logs: [] }
+                files: [],
                 isProcessing: false,
                 queueIndex: 0
             },
             
-            // Inicialización
             init: () => {
-                console.log(`Iniciando OCR Facturas Pro v${app.version}`);
-
-                // Drag & Drop
+                console.log(`Iniciando Facturación Pardos v${app.version}`);
                 const dropZone = document.getElementById('dropZone');
                 const fileInput = document.getElementById('fileInput');
 
                 dropZone.addEventListener('click', () => fileInput.click());
                 fileInput.addEventListener('change', (e) => app.handleFiles(e.target.files));
 
-                dropZone.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    dropZone.classList.add('dragover');
-                });
+                dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
                 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
                 dropZone.addEventListener('drop', (e) => {
                     e.preventDefault();
@@ -195,29 +173,25 @@
                     app.handleFiles(e.dataTransfer.files);
                 });
 
-                // Paste Event
                 document.addEventListener('paste', (e) => {
                     const items = e.clipboardData.items;
                     const files = [];
                     for (let i = 0; i < items.length; i++) {
-                        if (items[i].type.indexOf('image') !== -1) {
-                            files.push(items[i].getAsFile());
-                        }
+                        if (items[i].type.indexOf('image') !== -1) files.push(items[i].getAsFile());
                     }
                     if(files.length > 0) app.handleFiles(files);
                 });
             },
 
-            // Manejo de Archivos
             handleFiles: (fileList) => {
                 const newFiles = Array.from(fileList).map(file => ({
                     id: Math.random().toString(36).substr(2, 9),
                     file: file,
-                    status: 'pending', // pending, processing, done, error
+                    status: 'pending',
                     progress: 0,
                     data: {
                         fecha_emision: '', ruc_dni: '', razon_social: '', tipo: '',
-                        serie: '', numero: '', moneda: '', subtotal: '', igv: '',
+                        serie: '', numero: '', moneda: 'PEN', subtotal: '', igv: '',
                         total: '', detraccion: '', observaciones: '', ocr_text: ''
                     },
                     blobUrl: URL.createObjectURL(file)
@@ -228,51 +202,39 @@
                 app.processQueue();
             },
 
-            // Cola de Procesamiento
             processQueue: async () => {
                 if (app.state.isProcessing) return;
 
                 const pendingFileIndex = app.state.files.findIndex(f => f.status === 'pending');
-                if (pendingFileIndex === -1) return; // Nada pendiente
+                if (pendingFileIndex === -1) return;
 
                 app.state.isProcessing = true;
-                app.state.queueIndex = pendingFileIndex;
                 const currentFileObj = app.state.files[pendingFileIndex];
 
-                // Actualizar UI
                 currentFileObj.status = 'processing';
                 app.ui.updateRowStatus(currentFileObj.id, 'processing');
                 app.ui.showPreview(currentFileObj);
                 app.ui.updateGlobalProgress();
 
                 try {
-                    // 1. Preprocesamiento de Imagen
-                    app.ui.log("Iniciando pre-procesamiento...");
+                    app.ui.log(`Procesando: ${currentFileObj.file.name}`);
                     const processedImage = await app.ocr.preprocessImage(currentFileObj.file);
                     
-                    // 2. Ejecutar Tesseract
-                    app.ui.log("Ejecutando OCR (esto puede tardar)...");
-                    const { text } = await app.ocr.runTesseract(processedImage, (progress) => {
-                        currentFileObj.progress = progress;
-                        // Opcional: mostrar progreso por fila
-                    });
-
-                    // 3. Extracción de Datos
-                    app.ui.log("Analizando datos extraídos...");
+                    const { text } = await app.ocr.runTesseract(processedImage);
                     currentFileObj.data.ocr_text = text;
-                    const extractedData = app.extractor.parse(text, document.getElementById('docType').value);
-                    
-                    // Mezclar datos extraídos con estructura
+
+                    app.ui.log("Extrayendo datos...");
+                    const extractedData = app.extractor.parse(text);
                     currentFileObj.data = { ...currentFileObj.data, ...extractedData };
                     
                     currentFileObj.status = 'done';
-                    app.ui.log("Completado.");
+                    app.ui.log("Datos extraídos correctamente.");
 
                 } catch (error) {
                     console.error(error);
                     currentFileObj.status = 'error';
-                    currentFileObj.data.observaciones = "Error OCR: " + error.message;
-                    app.ui.log("Error: " + error.message);
+                    currentFileObj.data.observaciones = "Error: " + error.message;
+                    app.ui.log("Error OCR: " + error.message);
                 }
 
                 app.ui.updateRowData(currentFileObj.id);
@@ -280,12 +242,9 @@
                 
                 app.state.isProcessing = false;
                 app.ui.updateGlobalProgress();
-                
-                // Procesar siguiente recursivamente
                 app.processQueue();
             },
 
-            // --- MÓDULO OCR ---
             ocr: {
                 preprocessImage: (file) => {
                     return new Promise((resolve, reject) => {
@@ -295,302 +254,243 @@
                             const ctx = canvas.getContext('2d');
                             const mode = document.getElementById('ocrMode').value;
 
-                            // Redimensionar si es muy grande (optimización)
-                            const MAX_WIDTH = 2500;
-                            let width = img.width;
-                            let height = img.height;
-                            
-                            if (width > MAX_WIDTH) {
-                                height = Math.round(height * (MAX_WIDTH / width));
-                                width = MAX_WIDTH;
+                            // Redimensionar inteligente (Max 2000px es suficiente para Tesseract)
+                            const MAX_DIM = 2000;
+                            let w = img.width, h = img.height;
+                            if (w > MAX_DIM || h > MAX_DIM) {
+                                const ratio = Math.min(MAX_DIM / w, MAX_DIM / h);
+                                w = Math.round(w * ratio);
+                                h = Math.round(h * ratio);
                             }
 
-                            canvas.width = width;
-                            canvas.height = height;
-                            ctx.drawImage(img, 0, 0, width, height);
+                            canvas.width = w;
+                            canvas.height = h;
+                            
+                            // Fondo blanco para imágenes transparentes (PNG)
+                            ctx.fillStyle = "#FFFFFF";
+                            ctx.fillRect(0,0,w,h);
+                            ctx.drawImage(img, 0, 0, w, h);
 
-                            // Aplicar filtros según modo
-                            if (mode !== 'fast') {
-                                const imageData = ctx.getImageData(0, 0, width, height);
-                                const data = imageData.data;
+                            // Procesamiento de imagen
+                            const imageData = ctx.getImageData(0, 0, w, h);
+                            const data = imageData.data;
+                            
+                            for (let i = 0; i < data.length; i += 4) {
+                                // Convertir a escala de grises usando fórmula de luminancia
+                                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
                                 
-                                // Escala de grises y Aumento de Contraste
-                                for (let i = 0; i < data.length; i += 4) {
-                                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                                    let color = avg;
-                                    
-                                    // Aumentar contraste simple
-                                    const contrastFactor = 1.3; 
-                                    color = contrastFactor * (color - 128) + 128;
-                                    
-                                    // Binarización para modo 'best'
-                                    if (mode === 'best') {
-                                        color = color > 150 ? 255 : 0; 
-                                    }
-
-                                    data[i] = color;     // R
-                                    data[i + 1] = color; // G
-                                    data[i + 2] = color; // B
+                                // Aumentar contraste (Factor 1.5)
+                                let contrast = 1.5 * (gray - 128) + 128;
+                                
+                                // Binarización suave para el modo 'best'
+                                if (mode === 'best') {
+                                    contrast = contrast > 140 ? 255 : 0;
                                 }
-                                ctx.putImageData(imageData, 0, 0);
-                            }
 
-                            // Mostrar en el canvas de debug
-                            const previewCanvas = document.getElementById('previewCanvas');
-                            previewCanvas.width = width;
-                            previewCanvas.height = height;
-                            const pCtx = previewCanvas.getContext('2d');
-                            pCtx.drawImage(canvas, 0, 0);
+                                data[i] = contrast;
+                                data[i + 1] = contrast;
+                                data[i + 2] = contrast;
+                            }
+                            ctx.putImageData(imageData, 0, 0);
+
+                            // Debug visual
+                            const pCanvas = document.getElementById('previewCanvas');
+                            pCanvas.width = w; pCanvas.height = h;
+                            pCanvas.getContext('2d').drawImage(canvas, 0, 0);
                             
-                            // Convertir a blob para Tesseract
-                            canvas.toBlob(blob => resolve(blob));
+                            canvas.toBlob(resolve, 'image/jpeg', 0.9);
                         };
                         img.onerror = reject;
                         img.src = URL.createObjectURL(file);
                     });
                 },
 
-                runTesseract: async (imageBlob, progressCallback) => {
+                runTesseract: async (imageBlob) => {
                     const worker = await Tesseract.createWorker('spa'); 
-                    // spa suele ser suficiente, eng a veces añade ruido en docs latinos
-                    
                     await worker.setParameters({
+                        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyz.:,/-$ %()áéíóúÁÉÍÓÚ', // Lista blanca para reducir ruido
                         tessedit_pageseg_mode: Tesseract.PSM.AUTO,
                     });
-
                     const ret = await worker.recognize(imageBlob);
                     await worker.terminate();
                     return ret.data;
                 }
             },
 
-            // --- MÓDULO EXTRACTOR (HEURÍSTICAS MEJORADAS) ---
             extractor: {
                 cleanPrice: (str) => {
                     if (!str) return '';
-                    // 1. Limpieza agresiva de caracteres no numéricos
-                    // Mantiene números, puntos, comas y espacios (para corregir separaciones)
+                    // Eliminar caracteres no numéricos excepto puntos, comas y espacios
                     let clean = str.replace(/[^0-9.,\s]/g, '').trim();
-                    
-                    // 2. Corregir errores OCR comunes como espacios dentro de números "1 200.00"
-                    // Si hay un espacio rodeado de dígitos, quitarlo
-                    clean = clean.replace(/\s(?=\d)/g, ''); 
-                    clean = clean.replace(/\s/g, ''); // Eliminar restos
+                    // Eliminar espacios internos (1 200 -> 1200)
+                    clean = clean.replace(/\s/g, '');
 
-                    // 3. Normalizar separadores decimales/miles
-                    // Caso A: 1.200,50 (Europeo/Latam)
+                    if (!clean) return '';
+
+                    // Heurística de separador decimal
+                    // Si tiene coma y punto (1.200,00 o 1,200.00)
                     if (clean.includes(',') && clean.includes('.')) {
-                        if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
-                             // Coma al final -> Decimal
-                             clean = clean.replace(/\./g, '').replace(',', '.');
-                        } else {
-                             // Punto al final -> Decimal (1,200.50)
-                             clean = clean.replace(/,/g, '');
-                        }
-                    } 
-                    // Caso B: Solo comas (1,200 o 100,50)
-                    else if (clean.includes(',')) {
-                        // Si termina en coma y 2 digitos (ej: 100,50), es decimal
-                        if (/,\d{2}$/.test(clean)) {
-                            clean = clean.replace(',', '.');
-                        } else {
-                            // Si no, asumimos miles y borramos (ej: 1,200 -> 1200)
+                        if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) { // 1.200,00 (Coma decimal)
+                            clean = clean.replace(/\./g, '').replace(',', '.');
+                        } else { // 1,200.00 (Punto decimal)
                             clean = clean.replace(/,/g, '');
                         }
+                    } else if (clean.includes(',')) {
+                        // Solo comas: si tiene 2 decimales al final, es coma decimal (100,00)
+                        if (/,\d{2}$/.test(clean)) clean = clean.replace(',', '.');
+                        else clean = clean.replace(/,/g, ''); // 1,200 -> 1200
                     }
                     
                     const num = parseFloat(clean);
                     return isNaN(num) ? '' : num.toFixed(2);
                 },
 
-                parse: (text, type) => {
+                parse: (text) => {
                     const lines = text.split('\n');
                     const data = {};
 
-                    // --- 1. FECHA (Lógica Ampliada) ---
-                    // Intento 1: Etiqueta explícita
-                    const dateLabelRegex = /(?:FECHA|EMISION|EMISIÓN|VENCIMIENTO)[^0-9\n]*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})/i;
-                    let dateMatch = text.match(dateLabelRegex);
-                    
+                    // 1. FECHA (MEJORADO: Más tolerante a formatos)
+                    // Busca dd/mm/aaaa, dd-mm-aaaa, dd.mm.aaaa con posibles espacios
+                    const dateRegex = /\b(0?[1-9]|[12][0-9]|3[01])\s*[\/\-.,|]\s*(0?[1-9]|1[0-2])\s*[\/\-.,|]\s*((?:20)\d{2})\b/;
+                    const dateMatch = text.match(dateRegex);
                     if (dateMatch) {
-                         data.fecha_emision = dateMatch[1].replace(/-/g, '/').replace(/\./g, '/');
-                    } else {
-                         // Intento 2: Buscar cualquier fecha válida dd/mm/aaaa aislada
-                         // Filtramos años razonables (2020-2030) para evitar falsos positivos
-                         const simpleDateRegex = /\b(0?[1-9]|[12][0-9]|3[01])[\/\-.](0?[1-9]|1[0-2])[\/\-.]((?:20)?\d{2})\b/;
-                         dateMatch = text.match(simpleDateRegex);
-                         if (dateMatch) {
-                             let year = dateMatch[3];
-                             if (year.length === 2) year = '20' + year;
-                             data.fecha_emision = `${dateMatch[1]}/${dateMatch[2]}/${year}`;
-                         }
+                        data.fecha_emision = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
                     }
 
-                    // --- 2. MONTOS (Lógica "Ventana" y Fallback) ---
-                    // Regex flexible para precios
-                    const priceRegex = /\b\d{1,3}(?:[.,\s]?\d{3})*(?:[.,]\d{2})\b/g;
+                    // 2. MONTOS (MEJORADO: Búsqueda por palabras clave + Fallback inteligente)
+                    const priceRegex = /\b\d{1,3}(?:[.,\s]?\d{3})*(?:[.,]\d{2})\b/g; // Patrón genérico de precio
 
-                    const findValueForField = (keywords) => {
-                         // Buscar en todo el texto línea por línea
-                         for (let i = 0; i < lines.length; i++) {
-                             const line = lines[i].toUpperCase();
-                             if (keywords.some(k => line.includes(k))) {
-                                 // Prioridad 1: Número en la misma línea
-                                 let matches = line.match(priceRegex);
-                                 if (matches && matches.length > 0) return app.extractor.cleanPrice(matches[matches.length - 1]);
-                                 
-                                 // Prioridad 2: Número en la línea siguiente (muy común)
-                                 if (i + 1 < lines.length) {
-                                     let nextMatches = lines[i+1].match(priceRegex);
-                                     if (nextMatches && nextMatches.length > 0) return app.extractor.cleanPrice(nextMatches[0]);
-                                 }
-                             }
-                         }
-                         return null;
+                    const findAmount = (keywords) => {
+                        for (let line of lines) {
+                            if (keywords.some(k => line.toUpperCase().includes(k))) {
+                                const matches = line.match(priceRegex);
+                                if (matches) return app.extractor.cleanPrice(matches[matches.length - 1]); // Tomar el último número de la línea
+                            }
+                        }
+                        return null;
                     };
 
-                    data.igv = findValueForField(["IGV", "I.G.V", "IMPUESTO", "18%"]);
-                    data.subtotal = findValueForField(["SUBTOTAL", "OP. GRAVADA", "GRAVADA", "VALOR VENTA"]);
-                    data.detraccion = findValueForField(["DETRACCI", "SPOT"]);
-                    data.total = findValueForField(["TOTAL", "IMPORTE TOTAL", "NETO A PAGAR", "MONTO TOTAL"]);
+                    data.total = findAmount(["TOTAL", "IMPORTE TOTAL", "A PAGAR", "NETO"]);
+                    data.igv = findAmount(["IGV", "I.G.V", "IMPUESTO"]);
+                    data.subtotal = findAmount(["SUBTOTAL", "OP. GRAVADA", "VALOR VENTA", "BASE"]);
 
-                    // --- FALLBACK TOTAL (CRÍTICO) ---
-                    // Si no se encontró el Total por palabra clave, buscar el número más grande del documento
-                    // que parezca un precio. (El Total suele ser el monto mayor en una factura).
-                    if (!data.total || data.total === "0.00") {
-                         const allPrices = text.match(priceRegex);
-                         if (allPrices) {
-                             const validPrices = allPrices
-                                .map(p => parseFloat(app.extractor.cleanPrice(p)))
-                                .filter(n => !isNaN(n) && n > 0);
-                             
-                             if (validPrices.length > 0) {
-                                 const maxPrice = Math.max(...validPrices);
-                                 // Evitar coger el RUC como precio si por error se parseó como tal (aunque el regex busca decimales)
-                                 if (maxPrice < 10000000) { 
-                                    data.total = maxPrice.toFixed(2);
-                                 }
-                             }
-                         }
+                    // FALLBACK TOTAL: Si no encontró total por palabra clave, buscar el número más probable
+                    if (!data.total || data.total == "0.00") {
+                        const allNumbers = text.match(priceRegex);
+                        if (allNumbers) {
+                            const validNumbers = allNumbers
+                                .map(n => parseFloat(app.extractor.cleanPrice(n)))
+                                .filter(n => !isNaN(n) && n > 0 && n < 500000); // Filtro: Menor a 500k para evitar RUCs o códigos
+                            
+                            if (validNumbers.length > 0) {
+                                // El Total suele ser el monto mayor
+                                data.total = Math.max(...validNumbers).toFixed(2);
+                            }
+                        }
                     }
 
-                    // --- 3. RUC y SERIE ---
-                    // RUC explícito
-                    const rucMatch = text.match(/(?:RUC|R\.U\.C\.?)\s*[:.\-]?\s*([12]0\d{9})/i);
+                    // 3. RUC y SERIE
+                    const rucMatch = text.match(/\b(20\d{9}|10\d{9})\b/); // Busca 20xxxxxxxxx o 10xxxxxxxxx
                     if (rucMatch) {
                         data.ruc_dni = rucMatch[1];
                         data.tipo = "FACTURA";
                     } else {
-                         // Fallback: Buscar 11 dígitos que empiecen por 10 o 20 aislados
-                         const rawRuc = text.match(/\b(20\d{9}|10\d{9})\b/);
-                         if (rawRuc) {
-                             data.ruc_dni = rawRuc[1];
-                             data.tipo = "FACTURA";
-                         } else {
-                            // DNI
-                            const dniMatch = text.match(/(?:DNI|D\.N\.I\.?)\s*[:.\-]?\s*(\d{8})/i);
-                            if (dniMatch) {
-                                data.ruc_dni = dniMatch[1];
-                                data.tipo = "BOLETA";
-                            }
-                         }
+                        const dniMatch = text.match(/\b\d{8}\b/);
+                        if(dniMatch) { data.ruc_dni = dniMatch[0]; data.tipo = "BOLETA"; }
                     }
 
                     const serieMatch = text.match(/([FB][A-Z0-9]{2,3})\s*-\s*(\d{1,8})/);
                     if (serieMatch) {
                         data.serie = serieMatch[1];
                         data.numero = serieMatch[2];
-                        if(!data.tipo) data.tipo = data.serie.startsWith('F') ? 'FACTURA' : 'BOLETA';
                     }
 
-                    // --- 4. Moneda ---
-                    if (text.match(/USD|DOLARES|\$|US\$/i)) data.moneda = 'USD';
-                    else data.moneda = 'PEN';
-
-                    // --- 5. Razón Social (Básica) ---
-                    // Buscar texto antes del RUC
+                    // 4. RAZÓN SOCIAL (Intento buscar línea antes del RUC)
                     if (data.ruc_dni) {
-                         const index = text.indexOf(data.ruc_dni);
-                         if (index > -1) {
-                             // Tomamos texto anterior, revertimos líneas
-                             const preText = text.substring(0, index).split('\n').reverse();
-                             for(let l of preText) {
-                                 l = l.trim();
-                                 // Heurística: Línea larga, mayúsculas, sin palabras clave técnicas
-                                 if (l.length > 5 && !l.includes('RUC') && !l.includes('FACTURA') && !l.match(/\d/)) {
-                                     data.razon_social = l;
-                                     break;
-                                 }
-                             }
-                         }
+                        const idx = text.indexOf(data.ruc_dni);
+                        if (idx > 20) { // Si hay suficiente texto antes
+                            const preText = text.substring(0, idx).split('\n').reverse();
+                            for (let l of preText) {
+                                l = l.trim();
+                                if (l.length > 5 && !/\d/.test(l) && !l.includes(':')) { // Línea sin números, ni dos puntos
+                                    data.razon_social = l;
+                                    break;
+                                }
+                            }
+                        }
                     }
 
                     return data;
                 }
             },
 
-            // --- MÓDULO EXPORTACIÓN ---
+            // --- EXPORTACIÓN ---
             
+            exportToExcel: () => {
+                const rows = app.state.files.map(f => ({
+                    "Fecha Emisión": f.data.fecha_emision,
+                    "RUC/DNI": f.data.ruc_dni,
+                    "Razón Social": f.data.razon_social,
+                    "Tipo": f.data.tipo,
+                    "Serie": f.data.serie,
+                    "Número": f.data.numero,
+                    "Moneda": f.data.moneda,
+                    "Subtotal": parseFloat(f.data.subtotal) || 0,
+                    "IGV": parseFloat(f.data.igv) || 0,
+                    "Total": parseFloat(f.data.total) || 0,
+                    "Detracción": f.data.detraccion,
+                    "Archivo Original": f.file.name,
+                    "Observaciones": f.data.observaciones
+                }));
+
+                if (rows.length === 0) {
+                    Swal.fire("Sin datos", "No hay facturas procesadas para exportar.", "warning");
+                    return;
+                }
+
+                // Crear Libro y Hoja
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(rows);
+                
+                // Ajustar ancho de columnas
+                const wscols = [
+                    {wch:12}, {wch:12}, {wch:25}, {wch:10}, {wch:8}, {wch:10}, {wch:8}, 
+                    {wch:10}, {wch:10}, {wch:12}, {wch:10}, {wch:20}, {wch:20}
+                ];
+                ws['!cols'] = wscols;
+
+                XLSX.utils.book_append_sheet(wb, ws, "Facturas");
+                XLSX.writeFile(wb, "Facturacion_Pardos.xlsx");
+            },
+
             sendAllToSheets: async () => {
                 const url = document.getElementById('sheetsUrl').value;
                 if (!url) {
-                    Swal.fire('Error', 'Debes configurar la URL del Google Apps Script primero.', 'error');
+                    Swal.fire('Error', 'Falta la URL del Apps Script.', 'error');
                     return;
                 }
-
-                // Filtrar datos listos
-                const rowsToSend = app.state.files
-                    .filter(f => f.status === 'done' || f.status === 'processing') // Permitir enviar editados manuales
+                
+                const rowsToSend = app.state.files.filter(f => f.status === 'done' || f.status === 'processing')
                     .map(f => ({ ...f.data, filename: f.file.name }));
 
-                if (rowsToSend.length === 0) {
-                    Swal.fire('Atención', 'No hay datos procesados para enviar.', 'warning');
-                    return;
-                }
+                if (rowsToSend.length === 0) return;
 
-                Swal.fire({
-                    title: 'Enviando...',
-                    text: `Enviando ${rowsToSend.length} facturas a Google Sheets`,
-                    didOpen: () => Swal.showLoading()
-                });
+                Swal.fire({ title: 'Enviando...', didOpen: () => Swal.showLoading() });
 
                 try {
-                    // Usamos no-cors porque GAS suele dar problemas de CORS con json directo desde cliente
-                    // Sin embargo, para recibir respuesta necesitamos text/plain y parsear en GAS
                     await fetch(url, {
                         method: 'POST',
-                        mode: 'no-cors', // Importante para GAS simple
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(rowsToSend)
                     });
-
-                    Swal.fire('Éxito', 'Los datos se han enviado (Revisa tu hoja de cálculo).', 'success');
+                    Swal.fire('Enviado', 'Datos enviados a Google Sheets.', 'success');
                 } catch (e) {
-                    Swal.fire('Error', 'Fallo al enviar: ' + e.message, 'error');
+                    Swal.fire('Error', 'Falló el envío: ' + e.message, 'error');
                 }
             },
 
-            exportToCSV: () => {
-                const rows = app.state.files.map(f => f.data);
-                if (rows.length === 0) return;
-
-                const headers = ["Fecha", "RUC", "Razón Social", "Tipo", "Serie", "Num", "Moneda", "Subtotal", "IGV", "Total", "Detraccion", "Obs"];
-                const csvContent = [
-                    headers.join(','),
-                    ...rows.map(r => [
-                        r.fecha_emision, r.ruc_dni, `"${r.razon_social}"`, r.tipo, 
-                        r.serie, r.numero, r.moneda, r.subtotal, r.igv, r.total, r.detraccion, `"${r.observaciones}"`
-                    ].join(','))
-                ].join('\n');
-
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
-                link.download = "facturas_ocr.csv";
-                link.click();
-            },
-
-            // --- UI HELPERS ---
+            // --- UI ---
             ui: {
                 log: (msg) => {
                     const panel = document.getElementById('logPanel');
@@ -610,42 +510,33 @@
                 },
 
                 showPreview: (fileObj) => {
-                    const img = document.getElementById('previewImg');
-                    img.src = fileObj.blobUrl;
+                    document.getElementById('previewImg').src = fileObj.blobUrl;
                 },
 
                 updateRowStatus: (id, status) => {
                     const badge = document.querySelector(`tr[data-id="${id}"] .status-badge`);
-                    if (!badge) return;
-                    
-                    badge.className = `status-badge status-${status}`;
-                    if (status === 'processing') {
-                        badge.innerHTML = '<div class="loader"></div>';
-                    } else {
-                        badge.innerText = status;
+                    if (badge) {
+                        badge.className = `status-badge status-${status}`;
+                        badge.innerHTML = status === 'processing' ? '<div class="loader"></div>' : status;
                     }
                 },
 
                 updateRowData: (id) => {
-                    const fileObj = app.state.files.find(f => f.id === id);
-                    if (!fileObj) return;
+                    const f = app.state.files.find(x => x.id === id);
+                    if (!f) return;
                     const tr = document.querySelector(`tr[data-id="${id}"]`);
                     if (!tr) return;
 
-                    // Actualizar inputs con datos extraídos
-                    const inputs = tr.querySelectorAll('input');
-                    inputs.forEach(input => {
-                        const field = input.name;
-                        if (fileObj.data[field]) input.value = fileObj.data[field];
-                        
-                        // Validación visual básica
-                        if (['fecha_emision', 'ruc_dni', 'total'].includes(field) && !input.value) {
-                            input.classList.add('validation-error');
-                        } else {
-                            input.classList.remove('validation-error');
+                    const fields = ['fecha_emision', 'ruc_dni', 'razon_social', 'tipo', 'serie', 'numero', 'moneda', 'subtotal', 'igv', 'total', 'detraccion', 'observaciones'];
+                    fields.forEach(field => {
+                        const input = tr.querySelector(`input[name="${field}"]`);
+                        if(input) {
+                            input.value = f.data[field] || '';
+                            // Validación visual
+                            if(['fecha_emision', 'total'].includes(field) && !input.value) input.classList.add('validation-error');
+                            else input.classList.remove('validation-error');
                         }
                     });
-                    
                     app.ui.calculateSum();
                 },
                 
@@ -668,67 +559,47 @@
                 renderTable: () => {
                     const tbody = document.getElementById('dataTableBody');
                     tbody.innerHTML = '';
-
-                    app.state.files.forEach(fileObj => {
+                    app.state.files.forEach(f => {
                         const tr = document.createElement('tr');
-                        tr.setAttribute('data-id', fileObj.id);
+                        tr.setAttribute('data-id', f.id);
                         
-                        // Generar celdas editables
-                        const createInput = (field, val, width = 'w-full') => 
-                            `<input type="text" name="${field}" value="${val || ''}" onchange="app.updateField('${fileObj.id}', '${field}', this.value)">`;
+                        const i = (n, v) => `<input type="text" name="${n}" value="${v||''}" onchange="app.updateField('${f.id}','${n}',this.value)">`;
 
                         tr.innerHTML = `
-                            <td class="text-center">
-                                <button onclick="app.ui.deleteRow('${fileObj.id}')" class="text-red-500 hover:text-red-700"><i class="ph ph-trash"></i></button>
-                            </td>
-                            <td><span class="status-badge status-${fileObj.status}">${fileObj.status}</span></td>
-                            <td>${createInput('fecha_emision', fileObj.data.fecha_emision)}</td>
-                            <td>${createInput('ruc_dni', fileObj.data.ruc_dni)}</td>
-                            <td>${createInput('razon_social', fileObj.data.razon_social)}</td>
-                            <td>${createInput('tipo', fileObj.data.tipo)}</td>
-                            <td>${createInput('serie', fileObj.data.serie)}</td>
-                            <td>${createInput('numero', fileObj.data.numero)}</td>
-                            <td>${createInput('moneda', fileObj.data.moneda)}</td>
-                            <td>${createInput('subtotal', fileObj.data.subtotal)}</td>
-                            <td>${createInput('igv', fileObj.data.igv)}</td>
-                            <td class="bg-blue-50 font-bold">${createInput('total', fileObj.data.total)}</td>
-                            <td>${createInput('detraccion', fileObj.data.detraccion)}</td>
-                            <td class="text-xs text-slate-500 truncate max-w-[100px]" title="${fileObj.file.name}">${fileObj.file.name}</td>
-                            <td>${createInput('observaciones', fileObj.data.observaciones)}</td>
+                            <td class="text-center"><button onclick="app.ui.deleteRow('${f.id}')" class="text-red-500 hover:text-red-700"><i class="ph ph-trash"></i></button></td>
+                            <td><span class="status-badge status-${f.status}">${f.status}</span></td>
+                            <td>${i('fecha_emision', f.data.fecha_emision)}</td>
+                            <td>${i('ruc_dni', f.data.ruc_dni)}</td>
+                            <td>${i('razon_social', f.data.razon_social)}</td>
+                            <td>${i('tipo', f.data.tipo)}</td>
+                            <td>${i('serie', f.data.serie)}</td>
+                            <td>${i('numero', f.data.numero)}</td>
+                            <td>${i('moneda', f.data.moneda)}</td>
+                            <td class="bg-blue-50 font-bold text-right">${i('total', f.data.total)}</td>
+                            <td class="text-right">${i('subtotal', f.data.subtotal)}</td>
+                            <td class="text-right">${i('igv', f.data.igv)}</td>
+                            <td class="text-xs text-slate-500 truncate max-w-[100px]" title="${f.file.name}">${f.file.name}</td>
+                            <td>${i('observaciones', f.data.observaciones)}</td>
                         `;
-                        
-                        // Click en fila para ver imagen
-                        tr.addEventListener('click', (e) => {
-                            if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
-                                app.ui.showPreview(fileObj);
-                            }
-                        });
-                        
+                        tr.addEventListener('click', (e) => { if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') app.ui.showPreview(f); });
                         tbody.appendChild(tr);
                     });
                     app.ui.calculateSum();
                 }
             },
             
-            // Helper para actualizar modelo desde UI
             updateField: (id, field, value) => {
                 const f = app.state.files.find(x => x.id === id);
                 if (f) {
                     f.data[field] = value;
                     app.ui.calculateSum();
-                    
-                    // Quitar error si se llena
-                    if(value) {
-                       const input = document.querySelector(`tr[data-id="${id}"] input[name="${field}"]`);
-                       if(input) input.classList.remove('validation-error');
-                    }
+                    const input = document.querySelector(`tr[data-id="${id}"] input[name="${field}"]`);
+                    if(input && value) input.classList.remove('validation-error');
                 }
             }
         };
 
-        // Arrancar
         document.addEventListener('DOMContentLoaded', app.init);
-
     </script>
 </body>
 </html>
