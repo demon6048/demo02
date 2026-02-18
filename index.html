@@ -45,7 +45,7 @@
         <div class="flex items-center gap-2">
             <i class="ph ph-receipt text-3xl text-blue-600"></i>
             <div>
-                <h1 class="text-xl font-bold text-slate-800">OCR Facturas Pro</h1>
+                <h1 class="text-xl font-bold text-slate-800">OCR Facturas Pro <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded ml-2">v1.2</span></h1>
                 <p class="text-xs text-slate-500">Lectura automática, validación y exportación</p>
             </div>
         </div>
@@ -166,6 +166,7 @@
          */
 
         const app = {
+            version: '1.2',
             state: {
                 files: [], // { id, file, status, data: {}, logs: [] }
                 isProcessing: false,
@@ -174,6 +175,8 @@
             
             // Inicialización
             init: () => {
+                console.log(`Iniciando OCR Facturas Pro v${app.version}`);
+
                 // Drag & Drop
                 const dropZone = document.getElementById('dropZone');
                 const fileInput = document.getElementById('fileInput');
