@@ -3,502 +3,675 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KGB STREAMING v4.1 | Vertical</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS (Excel Export) -->
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <title>OCR Facturas a Excel/Sheets</title>
     
+    <!-- Tesseract.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- SweetAlert2 para alertas bonitas -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Tailwind CSS (via CDN) para estilos rápidos y limpios -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos Phosphor -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
     <style>
-        body { font-family: 'Montserrat', sans-serif; background-color: #f1f5f9; }
-        .chart-container { position: relative; width: 100%; height: 300px; }
-        .nav-item.active { background-color: #4338ca; color: white; font-weight: 600; border-left: 4px solid #a5b4fc; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
-        .refunded-row { background-color: #fee2e2 !important; }
-        .refunded-text { color: #991b1b !important; text-decoration: line-through; opacity: 0.6; }
-        /* Scrollbar Personalizado */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f3f4f6; }
+        .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.3s; }
+        .drop-zone.dragover { border-color: #3b82f6; background-color: #eff6ff; }
+        
+        /* Estilos de Tabla Excel-like */
+        .excel-table th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.75rem; border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
+        .excel-table td { border: 1px solid #e2e8f0; padding: 4px 8px; font-size: 0.85rem; vertical-align: middle; background: white; }
+        .excel-table input { width: 100%; border: none; outline: none; background: transparent; padding: 4px; font-family: monospace; font-size: 0.85rem; }
+        .excel-table input:focus { background-color: #eff6ff; box-shadow: inset 0 0 0 2px #3b82f6; }
+        
+        .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
+        .status-pending { background: #e2e8f0; color: #64748b; }
+        .status-processing { background: #dbeafe; color: #2563eb; }
+        .status-done { background: #dcfce7; color: #166534; }
+        .status-error { background: #fee2e2; color: #991b1b; }
+
+        .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Campos críticos vacíos */
+        .validation-error { background-color: #fee2e2 !important; }
     </style>
 </head>
-<body class="flex flex-col h-screen overflow-hidden text-slate-800 bg-slate-50">
+<body class="h-screen flex flex-col">
 
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-200 shadow-sm z-20 h-20 flex-shrink-0">
-        <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-indigo-500 font-bold text-xl shadow-lg border border-slate-700">
-                    <i class="fa-solid fa-play"></i>
-                </div>
-                <div>
-                    <h1 class="text-2xl font-black text-slate-900 tracking-tighter leading-none uppercase">
-                        KGB <span class="text-indigo-600">STREAMING</span>
-                    </h1>
-                    <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Sistema Local v4.1</p>
-                </div>
-            </div>
-            <!-- Botón de Reset de Emergencia -->
+    <!-- HEADER -->
+    <header class="bg-white shadow-sm border-b p-4 flex justify-between items-center z-10">
+        <div class="flex items-center gap-2">
+            <i class="ph ph-receipt text-3xl text-blue-600"></i>
             <div>
-                <button onclick="hardReset()" class="text-xs text-red-300 hover:text-red-500 font-bold uppercase tracking-widest transition">Resetear Todo</button>
+                <h1 class="text-xl font-bold text-slate-800">OCR Facturas Pro</h1>
+                <p class="text-xs text-slate-500">Lectura automática, validación y exportación</p>
             </div>
+        </div>
+        
+        <div class="flex gap-3 items-center">
+            <div class="flex flex-col items-end">
+                <label class="text-xs text-slate-500 font-semibold mb-1">URL Web App (Google Sheets)</label>
+                <input type="text" id="sheetsUrl" placeholder="Pegar URL del script aquí..." class="border rounded px-2 py-1 text-xs w-64 focus:ring-2 ring-blue-500 outline-none">
+            </div>
+            <button onclick="app.exportToCSV()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm flex items-center gap-2 transition">
+                <i class="ph ph-file-csv"></i> CSV
+            </button>
+            <button onclick="app.sendAllToSheets()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm flex items-center gap-2 transition">
+                <i class="ph ph-google-logo"></i> Enviar Todo
+            </button>
         </div>
     </header>
 
-    <!-- Main Wrapper -->
-    <div class="flex-1 overflow-hidden relative flex">
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex overflow-hidden">
         
-        <!-- Sidebar -->
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col z-10 shadow-2xl border-r border-slate-800">
-            <div class="p-6">
-                <div class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-6">Navegación</div>
-                <nav class="space-y-2">
-                    <button onclick="switchAppTab('pos')" id="nav-pos" class="nav-item w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition active bg-indigo-700 text-white font-bold shadow-lg group">
-                        <i class="fa-solid fa-cart-shopping w-5 mr-3 group-hover:scale-110 transition"></i> <span>Venta Nueva</span>
-                    </button>
-                    <button onclick="switchAppTab('history')" id="nav-history" class="nav-item w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition group">
-                        <i class="fa-solid fa-list-check w-5 mr-3 group-hover:scale-110 transition"></i> <span>Historial</span>
-                    </button>
-                    <button onclick="switchAppTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition group">
-                        <i class="fa-solid fa-chart-pie w-5 mr-3 group-hover:scale-110 transition"></i> <span>Reportes</span>
-                    </button>
-                    <button onclick="switchAppTab('config')" id="nav-config" class="nav-item w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-800 transition text-slate-400 hover:text-white group">
-                        <i class="fa-solid fa-sliders w-5 mr-3 group-hover:scale-110 transition"></i> <span>Configuración</span>
-                    </button>
-                </nav>
+        <!-- SIDEBAR (Upload & Preview) -->
+        <aside class="w-80 bg-white border-r flex flex-col shadow-lg z-0">
+            <!-- Zona de Carga -->
+            <div class="p-4 border-b">
+                <div id="dropZone" class="drop-zone rounded-lg p-6 text-center cursor-pointer">
+                    <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+                    <i class="ph ph-upload-simple text-3xl text-slate-400 mb-2"></i>
+                    <p class="text-sm font-medium text-slate-600">Arrastra imágenes aquí</p>
+                    <p class="text-xs text-slate-400 mt-1">o clic para seleccionar</p>
+                </div>
+                
+                <div class="mt-4 space-y-2">
+                    <div class="flex justify-between text-xs text-slate-600 font-semibold">
+                        <span>Progreso Global</span>
+                        <span id="queueCount">0/0</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div id="globalProgress" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
             </div>
-            <div class="mt-auto p-5 bg-black/20 border-t border-slate-800 text-center">
-                <p class="text-xs text-slate-500 font-bold">Base de Datos: Local</p>
-                <p class="text-sm font-extrabold text-indigo-400 mt-0.5">José Vizcarra</p>
+
+            <!-- Opciones de Procesamiento -->
+            <div class="p-4 bg-slate-50 border-b space-y-3">
+                <h3 class="text-xs font-bold text-slate-500 uppercase">Configuración OCR</h3>
+                <div>
+                    <label class="text-xs text-slate-600 block mb-1">Calidad / Modo</label>
+                    <select id="ocrMode" class="w-full border rounded text-xs p-1.5">
+                        <option value="fast">Rápido (Sin pre-proceso pesado)</option>
+                        <option value="balanced" selected>Balanceado (Escala de grises + Contraste)</option>
+                        <option value="best">Detallado (Binarización + Alta Res)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600 block mb-1">Tipo de Documento</label>
+                    <select id="docType" class="w-full border rounded text-xs p-1.5">
+                        <option value="generic">Genérico</option>
+                        <option value="sunat" selected>Perú (Factura/Boleta SUNAT)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Preview (Canvas oculto para procesamiento, visible para usuario) -->
+            <div class="flex-1 overflow-auto p-4 bg-slate-100 flex flex-col items-center justify-center relative">
+                <h3 class="absolute top-2 left-2 text-xs font-bold text-slate-400 z-10">VISTA PREVIA</h3>
+                <canvas id="previewCanvas" class="max-w-full shadow-md border bg-white hidden"></canvas>
+                <img id="previewImg" class="max-w-full shadow-md border bg-white object-contain h-64 w-full" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmMmY2Ii8+PC9zdmc+" alt="Vista previa">
+                <div id="logPanel" class="w-full mt-2 p-2 bg-black text-green-400 font-mono text-[10px] h-32 overflow-y-auto rounded hidden"></div>
             </div>
         </aside>
 
-        <!-- App Content -->
-        <main class="flex-1 bg-slate-50 overflow-y-auto p-4 md:p-8 relative">
+        <!-- DATA TABLE -->
+        <div class="flex-1 flex flex-col overflow-hidden bg-white">
+            <div class="overflow-auto flex-1 p-0">
+                <table class="w-full excel-table text-left border-collapse">
+                    <thead class="sticky top-0 z-10 shadow-sm">
+                        <tr>
+                            <th class="w-10 text-center"><i class="ph ph-gear"></i></th> <!-- Acciones -->
+                            <th class="w-20">Estado</th>
+                            <th class="w-24">Fecha</th>
+                            <th class="w-28">RUC/DNI</th>
+                            <th class="w-40">Razón Social</th>
+                            <th class="w-20">Tipo</th>
+                            <th class="w-16">Serie</th>
+                            <th class="w-20">Número</th>
+                            <th class="w-16">Moneda</th>
+                            <th class="w-20 text-right">Subtotal</th>
+                            <th class="w-20 text-right">IGV</th>
+                            <th class="w-24 text-right bg-blue-50">Total</th>
+                            <th class="w-20 text-right">Detracción</th>
+                            <th class="w-32">Archivo</th>
+                            <th class="w-40">Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody">
+                        <!-- Las filas se generarán dinámicamente aquí -->
+                    </tbody>
+                </table>
+            </div>
             
-            <!-- TAB: POS -->
-            <div id="tab-pos" class="app-tab max-w-4xl mx-auto">
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                        <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-cash-register text-indigo-600"></i> REGISTRAR VENTA</h2>
-                        <div class="px-3 py-1 bg-slate-100 rounded text-xs font-bold text-slate-500">ID: <span id="pos-id">#--</span></div>
-                    </div>
-                    <div class="p-8 space-y-8">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Vendedor</label><select id="pos-seller" class="w-full border-gray-200 bg-slate-50 rounded-xl p-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition"></select></div>
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Plataforma</label><select id="pos-product" onchange="updatePosCalc()" class="w-full border-gray-200 bg-slate-50 rounded-xl p-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition"></select></div>
-                        </div>
-                        <!-- Calc Card -->
-                        <div class="bg-slate-900 rounded-2xl p-8 shadow-xl relative overflow-hidden text-white group">
-                            <div class="absolute top-0 right-0 w-40 h-40 bg-indigo-600 rounded-full filter blur-[60px] opacity-30 -mr-10 -mt-10 group-hover:opacity-40 transition duration-1000"></div>
-                            <div class="grid grid-cols-3 gap-8 text-center relative z-10">
-                                <div><p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">COSTO BASE</p><input id="pos-cost" readonly class="w-full bg-transparent text-center font-mono text-xl text-slate-400 font-bold outline-none" value="0.00"></div>
-                                <div class="relative border-x border-slate-700"><p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-2">PRECIO VENTA</p><div class="flex items-center justify-center"><span class="text-white font-bold text-lg mr-1">S/</span><input id="pos-price" type="number" oninput="reCalcProfitOnly()" class="w-24 text-center font-mono text-3xl text-white font-bold bg-transparent outline-none border-b-2 border-indigo-500 focus:border-white transition" value="0.00"></div></div>
-                                <div><p class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-2">GANANCIA</p><p id="pos-profit" class="font-mono text-2xl text-emerald-400 font-bold mt-1">0.00</p></div>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Nombre Cliente</label><input type="text" id="pos-client" placeholder="Ej. Juan Pérez" class="w-full border-gray-200 p-3.5 rounded-xl text-sm outline-none focus:border-indigo-500 transition border"></div>
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Teléfono / WPP</label><input type="text" id="pos-phone" placeholder="999..." class="w-full border-gray-200 p-3.5 rounded-xl text-sm outline-none focus:border-indigo-500 transition border"></div>
-                        </div>
-                        <button onclick="submitSale()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/30 transition transform active:scale-[0.98] uppercase tracking-widest text-sm flex justify-center items-center gap-2"><i class="fa-solid fa-check-circle"></i> Confirmar Venta</button>
-                    </div>
+            <!-- Footer con totales rápidos -->
+            <div class="h-10 border-t bg-slate-50 flex items-center px-4 justify-between text-xs text-slate-600">
+                <span id="rowCount">0 Documentos</span>
+                <div class="flex gap-4">
+                    <span>Suma Total (Detectada): <strong id="sumTotal">0.00</strong></span>
                 </div>
             </div>
+        </div>
+    </main>
 
-            <!-- TAB: HISTORY -->
-            <div id="tab-history" class="app-tab hidden max-w-7xl mx-auto">
-                <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600"><i class="fa-solid fa-list"></i></span>
-                    Historial de Ventas
-                </h2>
-
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 mb-6">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Desde</label><input type="date" id="filter-start" onchange="renderHistoryTable()" class="w-full border-gray-200 rounded-lg p-2.5 text-sm bg-slate-50 outline-none focus:border-indigo-500 border"></div>
-                        <div><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Hasta</label><input type="date" id="filter-end" onchange="renderHistoryTable()" class="w-full border-gray-200 rounded-lg p-2.5 text-sm bg-slate-50 outline-none focus:border-indigo-500 border"></div>
-                        <div><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Vendedor</label><select id="filter-seller" onchange="renderHistoryTable()" class="w-full border-gray-200 rounded-lg p-2.5 text-sm bg-slate-50 outline-none focus:border-indigo-500 border"></select></div>
-                        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-bold shadow transition flex items-center justify-center gap-2 text-sm"><i class="fa-solid fa-file-excel"></i> Exportar</button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- TABLE -->
-                    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[600px]">
-                        <div class="overflow-auto flex-1">
-                            <table class="w-full text-sm text-left">
-                                <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0 shadow-sm z-10 font-bold tracking-wider">
-                                    <tr>
-                                        <th class="px-6 py-4">Producto & Detalles</th>
-                                        <th class="px-6 py-4">Cliente</th>
-                                        <th class="px-6 py-4 text-right">Comisión</th>
-                                        <th class="px-6 py-4 text-center">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="history-table-body" class="divide-y divide-gray-100"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Summary -->
-                    <div class="lg:col-span-1">
-                        <div class="bg-slate-900 text-white p-8 rounded-3xl shadow-xl sticky top-6 border border-slate-700">
-                            <h3 class="font-bold text-lg mb-6 flex items-center gap-2"><i class="fa-solid fa-wallet text-indigo-400"></i> Caja (Filtro)</h3>
-                            <div class="space-y-4 mb-8">
-                                <div class="flex justify-between border-b border-slate-700 pb-3"><span class="text-slate-400 text-sm">Ventas Netas</span><span class="font-mono font-bold text-lg" id="liq-total">S/ 0.00</span></div>
-                                <div class="flex justify-between border-b border-slate-700 pb-3"><span class="text-slate-400 text-sm">Válidas</span><span class="font-mono font-bold text-lg" id="liq-count">0</span></div>
-                                <div class="flex justify-between border-b border-slate-700 pb-3"><span class="text-red-400 text-sm">Reembolsos</span><span class="font-mono font-bold text-lg text-red-400" id="liq-refunds">0</span></div>
-                            </div>
-                            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl p-6 shadow-lg">
-                                <p class="text-[10px] text-indigo-100 font-bold uppercase mb-1 tracking-widest">PAGO COMISIÓN</p>
-                                <p class="text-3xl font-black text-white font-mono tracking-tight" id="liq-comm">S/ 0.00</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB: CONFIG (VERTICAL ORDER) -->
-            <div id="tab-config" class="app-tab hidden max-w-4xl mx-auto pb-10">
-                <h2 class="text-2xl font-black text-slate-800 mb-6">CONFIGURACIÓN</h2>
-                
-                <div class="flex flex-col gap-8">
-                    
-                    <!-- 1. PLATAFORMAS (Primero) -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                        <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2 text-xs uppercase tracking-widest border-b pb-4">
-                            <i class="fa-solid fa-layer-group text-indigo-500"></i> Catálogo de Plataformas
-                        </h3>
-                        <!-- Formulario Agregar Producto -->
-                        <div class="bg-indigo-50 p-5 rounded-xl mb-6 border border-indigo-100 flex flex-col md:flex-row gap-4">
-                            <input type="text" id="new-prod-name" placeholder="Nombre (Ej. Netflix Premium)" class="flex-grow border border-indigo-200 bg-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                            <div class="flex gap-3">
-                                <input type="number" id="new-prod-cost" class="w-24 border border-indigo-200 bg-white rounded-lg px-3 py-3 text-sm" placeholder="Costo">
-                                <input type="number" id="new-prod-price" class="w-24 border border-indigo-200 bg-white rounded-lg px-3 py-3 text-sm" placeholder="Venta">
-                                <button onclick="addProduct()" class="bg-indigo-600 text-white px-6 rounded-lg font-bold text-sm shadow-md hover:bg-indigo-700 transition">Agregar</button>
-                            </div>
-                        </div>
-                        <!-- Lista Productos -->
-                        <div class="overflow-y-auto max-h-[400px] border border-gray-100 rounded-xl">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-50 text-slate-500 font-bold sticky top-0 z-10">
-                                    <tr><th class="p-4">Plataforma</th><th class="p-4">Costo</th><th class="p-4">Venta</th><th class="p-4 text-right">Acción</th></tr>
-                                </thead>
-                                <tbody id="config-prod-list" class="divide-y divide-gray-100 text-slate-700"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- 2. VENDEDORES (Segundo) -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                        <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2 text-xs uppercase tracking-widest border-b pb-4">
-                            <i class="fa-solid fa-users text-indigo-500"></i> Equipo de Ventas
-                        </h3>
-                        <!-- Formulario Agregar Vendedor -->
-                        <div class="bg-slate-50 p-5 rounded-xl mb-6 border border-slate-100 flex flex-col md:flex-row gap-4">
-                            <input type="text" id="new-seller-name" placeholder="Nombre completo del vendedor" class="flex-grow border border-gray-200 bg-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-400">
-                            <div class="flex gap-3">
-                                <input type="tel" id="new-seller-phone" placeholder="Celular (519...)" class="w-48 border border-gray-200 bg-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-400">
-                                <button onclick="addSeller()" class="bg-slate-800 text-white px-6 rounded-lg font-bold text-sm shadow-md hover:bg-slate-900 transition">Registrar</button>
-                            </div>
-                        </div>
-                        <!-- Lista Vendedores -->
-                        <div class="overflow-y-auto max-h-[300px] pr-2">
-                            <ul id="config-seller-list" class="space-y-2"></ul>
-                        </div>
-                    </div>
-
-                    <!-- 3. DISTRIBUCIÓN (Tercero) -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                        <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2 text-xs uppercase tracking-widest border-b pb-4">
-                            <i class="fa-solid fa-percent text-indigo-500"></i> Distribución de Ganancias
-                        </h3>
-                        <div class="space-y-6">
-                            <div>
-                                <label class="flex justify-between text-xs font-bold text-slate-500 mb-2">Admin: <span id="display-admin-pct" class="text-indigo-600 font-black text-lg">60%</span></label>
-                                <input type="range" id="range-admin" min="0" max="100" value="60" oninput="updateConfigRange('admin')" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer accent-indigo-600">
-                            </div>
-                            <div>
-                                <label class="flex justify-between text-xs font-bold text-slate-500 mb-2">Vendedor: <span id="display-seller-pct" class="text-emerald-600 font-black text-lg">40%</span></label>
-                                <input type="range" id="range-seller" min="0" max="100" value="40" oninput="updateConfigRange('seller')" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer accent-emerald-500">
-                            </div>
-                            <button onclick="saveConfigPercentages()" class="w-full py-4 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase hover:bg-black transition shadow-lg tracking-widest">
-                                Guardar Cambios
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- TAB: DASHBOARD -->
-            <div id="tab-dashboard" class="app-tab hidden max-w-6xl mx-auto">
-                <h2 class="text-2xl font-black text-slate-800 mb-6">REPORTES</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"><p class="text-[10px] text-slate-400 uppercase font-bold mb-2">Ventas Totales</p><p id="dash-total" class="text-2xl font-black text-slate-800">S/ 0.00</p></div>
-                    <div class="bg-white p-6 rounded-2xl border border-indigo-100 shadow-sm"><p class="text-[10px] text-indigo-500 uppercase font-bold mb-2">Utilidad Admin</p><p id="dash-admin" class="text-2xl font-black text-indigo-600">S/ 0.00</p></div>
-                    <div class="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm"><p class="text-[10px] text-emerald-500 uppercase font-bold mb-2">Pago Vendedores</p><p id="dash-seller" class="text-2xl font-black text-emerald-600">S/ 0.00</p></div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"><p class="text-[10px] text-slate-400 uppercase font-bold mb-2">Ventas Válidas</p><p id="dash-count" class="text-2xl font-black text-slate-800">0</p></div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"><h3 class="font-bold text-slate-700 mb-6 text-xs uppercase tracking-widest">Ranking Vendedores</h3><div class="chart-container"><canvas id="chartSellers"></canvas></div></div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"><h3 class="font-bold text-slate-700 mb-6 text-xs uppercase tracking-widest">Mix Productos</h3><div class="chart-container"><canvas id="chartProducts"></canvas></div></div>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- Modals -->
-    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center backdrop-blur-sm"><div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl transform scale-100 transition"><h3 class="text-lg font-bold text-slate-800 mb-2">Confirmar Devolución</h3><p class="text-sm text-slate-500 mb-6">Se anulará la comisión. ¿Continuar?</p><div class="flex justify-end gap-3"><button onclick="closeConfirm()" class="px-4 py-2 text-slate-600 font-bold text-sm hover:bg-slate-100 rounded-lg">Cancelar</button><button id="btn-do-refund" class="px-4 py-2 bg-red-600 text-white font-bold text-sm hover:bg-red-700 rounded-lg shadow-md">Sí, Anular</button></div></div></div>
-    <div id="toast" class="fixed bottom-8 right-8 bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-y-40 transition-transform duration-500 z-50 flex items-center gap-4 border border-slate-700"><div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white"><i class="fa-solid fa-check"></i></div><div><h4 class="font-bold text-sm text-white">¡Éxito!</h4><p id="toast-msg" class="text-xs text-slate-400 font-medium">Operación completada</p></div></div>
+    <!-- HIDDEN ELEMENTS -->
+    <div id="hiddenContainer" style="display:none;"></div>
 
     <script>
-        // --- DATA STORE ---
-        const defaultData = {
-            config: { adminPct: 0.60, sellerPct: 0.40 },
-            sellers: [],
-            products: [],
-            sales: []
+        /**
+         * LÓGICA DE LA APLICACIÓN
+         * Módulos: UI, OCR, Extracción, Datos
+         */
+
+        const app = {
+            state: {
+                files: [], // { id, file, status, data: {}, logs: [] }
+                isProcessing: false,
+                queueIndex: 0
+            },
+            
+            // Inicialización
+            init: () => {
+                // Drag & Drop
+                const dropZone = document.getElementById('dropZone');
+                const fileInput = document.getElementById('fileInput');
+
+                dropZone.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', (e) => app.handleFiles(e.target.files));
+
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('dragover');
+                });
+                dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('dragover');
+                    app.handleFiles(e.dataTransfer.files);
+                });
+
+                // Paste Event
+                document.addEventListener('paste', (e) => {
+                    const items = e.clipboardData.items;
+                    const files = [];
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].type.indexOf('image') !== -1) {
+                            files.push(items[i].getAsFile());
+                        }
+                    }
+                    if(files.length > 0) app.handleFiles(files);
+                });
+            },
+
+            // Manejo de Archivos
+            handleFiles: (fileList) => {
+                const newFiles = Array.from(fileList).map(file => ({
+                    id: Math.random().toString(36).substr(2, 9),
+                    file: file,
+                    status: 'pending', // pending, processing, done, error
+                    progress: 0,
+                    data: {
+                        fecha_emision: '', ruc_dni: '', razon_social: '', tipo: '',
+                        serie: '', numero: '', moneda: '', subtotal: '', igv: '',
+                        total: '', detraccion: '', observaciones: '', ocr_text: ''
+                    },
+                    blobUrl: URL.createObjectURL(file)
+                }));
+
+                app.state.files = [...app.state.files, ...newFiles];
+                app.ui.renderTable();
+                app.processQueue();
+            },
+
+            // Cola de Procesamiento
+            processQueue: async () => {
+                if (app.state.isProcessing) return;
+
+                const pendingFileIndex = app.state.files.findIndex(f => f.status === 'pending');
+                if (pendingFileIndex === -1) return; // Nada pendiente
+
+                app.state.isProcessing = true;
+                app.state.queueIndex = pendingFileIndex;
+                const currentFileObj = app.state.files[pendingFileIndex];
+
+                // Actualizar UI
+                currentFileObj.status = 'processing';
+                app.ui.updateRowStatus(currentFileObj.id, 'processing');
+                app.ui.showPreview(currentFileObj);
+                app.ui.updateGlobalProgress();
+
+                try {
+                    // 1. Preprocesamiento de Imagen
+                    app.ui.log("Iniciando pre-procesamiento...");
+                    const processedImage = await app.ocr.preprocessImage(currentFileObj.file);
+                    
+                    // 2. Ejecutar Tesseract
+                    app.ui.log("Ejecutando OCR...");
+                    const { text } = await app.ocr.runTesseract(processedImage, (progress) => {
+                        currentFileObj.progress = progress;
+                        // Opcional: mostrar progreso por fila
+                    });
+
+                    // 3. Extracción de Datos
+                    app.ui.log("Analizando texto extraído...");
+                    currentFileObj.data.ocr_text = text;
+                    const extractedData = app.extractor.parse(text, document.getElementById('docType').value);
+                    
+                    // Mezclar datos extraídos con estructura
+                    currentFileObj.data = { ...currentFileObj.data, ...extractedData };
+                    
+                    currentFileObj.status = 'done';
+                    app.ui.log("Completado.");
+
+                } catch (error) {
+                    console.error(error);
+                    currentFileObj.status = 'error';
+                    currentFileObj.data.observaciones = "Error OCR: " + error.message;
+                    app.ui.log("Error: " + error.message);
+                }
+
+                app.ui.updateRowData(currentFileObj.id);
+                app.ui.updateRowStatus(currentFileObj.id, currentFileObj.status);
+                
+                app.state.isProcessing = false;
+                app.ui.updateGlobalProgress();
+                
+                // Procesar siguiente recursivamente
+                app.processQueue();
+            },
+
+            // --- MÓDULO OCR ---
+            ocr: {
+                preprocessImage: (file) => {
+                    return new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            const mode = document.getElementById('ocrMode').value;
+
+                            // Redimensionar si es muy grande (optimización)
+                            const MAX_WIDTH = 2500;
+                            let width = img.width;
+                            let height = img.height;
+                            
+                            if (width > MAX_WIDTH) {
+                                height = Math.round(height * (MAX_WIDTH / width));
+                                width = MAX_WIDTH;
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            // Aplicar filtros según modo
+                            if (mode !== 'fast') {
+                                const imageData = ctx.getImageData(0, 0, width, height);
+                                const data = imageData.data;
+                                
+                                // Escala de grises y Aumento de Contraste
+                                for (let i = 0; i < data.length; i += 4) {
+                                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                                    let color = avg;
+                                    
+                                    // Aumentar contraste simple
+                                    const contrastFactor = 1.2; 
+                                    color = contrastFactor * (color - 128) + 128;
+                                    
+                                    // Binarización para modo 'best'
+                                    if (mode === 'best') {
+                                        color = color > 160 ? 255 : 0; 
+                                    }
+
+                                    data[i] = color;     // R
+                                    data[i + 1] = color; // G
+                                    data[i + 2] = color; // B
+                                }
+                                ctx.putImageData(imageData, 0, 0);
+                            }
+
+                            // Mostrar en el canvas de debug
+                            const previewCanvas = document.getElementById('previewCanvas');
+                            previewCanvas.width = width;
+                            previewCanvas.height = height;
+                            const pCtx = previewCanvas.getContext('2d');
+                            pCtx.drawImage(canvas, 0, 0);
+                            
+                            // Convertir a blob para Tesseract
+                            canvas.toBlob(blob => resolve(blob));
+                        };
+                        img.onerror = reject;
+                        img.src = URL.createObjectURL(file);
+                    });
+                },
+
+                runTesseract: async (imageBlob, progressCallback) => {
+                    const worker = await Tesseract.createWorker('spa'); 
+                    // Nota: En prod, especificar logger para ver progreso
+                    
+                    // Configurar parámetros (whitelist opcional si solo buscamos números, pero facturas tienen texto)
+                    await worker.setParameters({
+                        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+                    });
+
+                    const ret = await worker.recognize(imageBlob);
+                    await worker.terminate();
+                    return ret.data;
+                }
+            },
+
+            // --- MÓDULO EXTRACTOR (HEURÍSTICAS) ---
+            extractor: {
+                cleanPrice: (str) => {
+                    if (!str) return '';
+                    // Eliminar símbolos de moneda y espacios
+                    let clean = str.replace(/[S\/$€USDsoles]/gi, '').trim();
+                    // Intentar normalizar formato 1.200,00 vs 1,200.00
+                    // Asumimos que si hay coma y punto, el último es el decimal.
+                    // Si solo hay coma o punto, y son 2 decimales, es separador decimal.
+                    // Estandarizar a formato JS: sin separador de miles, punto para decimales.
+                    
+                    // Caso 1: 1.000,00
+                    if (clean.includes('.') && clean.includes(',') && clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
+                        clean = clean.replace(/\./g, '').replace(',', '.');
+                    }
+                    // Caso 2: 1,000.00
+                    else if (clean.includes(',') && clean.includes('.') && clean.lastIndexOf('.') > clean.lastIndexOf(',')) {
+                        clean = clean.replace(/,/g, '');
+                    }
+                    // Caso 3: 1200,00
+                    else if (clean.includes(',') && !clean.includes('.')) {
+                        clean = clean.replace(',', '.');
+                    }
+                    
+                    return parseFloat(clean).toFixed(2);
+                },
+
+                parse: (text, type) => {
+                    const lines = text.split('\n');
+                    const data = {};
+
+                    // 1. RUC / DNI
+                    // Busca 11 dígitos empezando por 10 o 20 (RUC Perú)
+                    const rucMatch = text.match(/(?:RUC|R\.U\.C\.?)\s*[:.\-]?\s*([12]0\d{9})/i);
+                    if (rucMatch) {
+                        data.ruc_dni = rucMatch[1];
+                        data.tipo = "FACTURA"; // Si hay RUC suele ser factura o boleta con RUC
+                    } else {
+                        // Buscar DNI
+                        const dniMatch = text.match(/(?:DNI|D\.N\.I\.?)\s*[:.\-]?\s*(\d{8})/i);
+                        if (dniMatch) data.ruc_dni = dniMatch[1];
+                    }
+
+                    // 2. FECHA
+                    // dd/mm/yyyy o dd-mm-yyyy
+                    const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+                    if (dateMatch) {
+                        data.fecha_emision = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
+                    }
+
+                    // 3. SERIE Y NÚMERO
+                    // F001-0000234 o E001-123
+                    const serieMatch = text.match(/([FB][A-Z0-9]{2,3})\s*-\s*(\d{1,8})/);
+                    if (serieMatch) {
+                        data.serie = serieMatch[1];
+                        data.numero = serieMatch[2];
+                        data.tipo = data.serie.startsWith('F') ? 'FACTURA' : 'BOLETA';
+                    }
+
+                    // 4. TOTALES Y IMPORTES
+                    // Estrategia: Buscar palabras clave y tomar el número que esté a la derecha o abajo
+                    
+                    const findAmount = (keywords) => {
+                        // Regex para encontrar montos monetarios simples
+                        const amountRegex = /(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/; 
+                        
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i].toUpperCase();
+                            if (keywords.some(k => line.includes(k))) {
+                                // Buscar número en la misma línea
+                                let match = line.match(amountRegex);
+                                if (match) return app.extractor.cleanPrice(match[0]);
+                                
+                                // Si no, buscar en la siguiente línea (a veces el formato es vertical)
+                                if (i + 1 < lines.length) {
+                                    let nextMatch = lines[i+1].match(amountRegex);
+                                    if (nextMatch) return app.extractor.cleanPrice(nextMatch[0]);
+                                }
+                            }
+                        }
+                        return '';
+                    };
+
+                    data.total = findAmount(["TOTAL", "IMPORTE TOTAL", "NETO A PAGAR"]);
+                    data.igv = findAmount(["IGV", "I.G.V", "18%"]);
+                    data.subtotal = findAmount(["SUBTOTAL", "OP. GRAVADA", "VALOR VENTA", "BASE IMPONIBLE"]);
+                    data.detraccion = findAmount(["DETRACCI", "SPOT"]);
+
+                    // 5. MONEDA
+                    if (text.match(/USD|DOLARES|\$/i)) data.moneda = 'USD';
+                    else if (text.match(/SOLES|PEN|S\//i)) data.moneda = 'PEN';
+                    else data.moneda = 'PEN'; // Default Perú
+
+                    // 6. RAZÓN SOCIAL (Intento básico)
+                    // Generalmente las primeras líneas. Si encontramos el RUC, la línea anterior suele ser la empresa.
+                    if (rucMatch) {
+                        const rucIndex = text.indexOf(rucMatch[0]);
+                        const textBefore = text.substring(0, rucIndex).split('\n');
+                        // Tomar la línea más larga no vacía antes del RUC
+                        const candidates = textBefore.filter(l => l.trim().length > 4 && !l.includes('electronic'));
+                        if (candidates.length > 0) {
+                            data.razon_social = candidates[candidates.length - 1].trim();
+                        }
+                    }
+
+                    return data;
+                }
+            },
+
+            // --- MÓDULO EXPORTACIÓN ---
+            
+            sendAllToSheets: async () => {
+                const url = document.getElementById('sheetsUrl').value;
+                if (!url) {
+                    Swal.fire('Error', 'Debes configurar la URL del Google Apps Script primero.', 'error');
+                    return;
+                }
+
+                // Filtrar datos listos
+                const rowsToSend = app.state.files
+                    .filter(f => f.status === 'done' || f.status === 'processing') // Permitir enviar editados manuales
+                    .map(f => ({ ...f.data, filename: f.file.name }));
+
+                if (rowsToSend.length === 0) {
+                    Swal.fire('Atención', 'No hay datos procesados para enviar.', 'warning');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Enviando...',
+                    text: `Enviando ${rowsToSend.length} facturas a Google Sheets`,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                try {
+                    // Usamos no-cors porque GAS suele dar problemas de CORS con json directo desde cliente
+                    // Sin embargo, para recibir respuesta necesitamos text/plain y parsear en GAS
+                    await fetch(url, {
+                        method: 'POST',
+                        mode: 'no-cors', // Importante para GAS simple
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(rowsToSend)
+                    });
+
+                    Swal.fire('Éxito', 'Los datos se han enviado (Revisa tu hoja de cálculo).', 'success');
+                } catch (e) {
+                    Swal.fire('Error', 'Fallo al enviar: ' + e.message, 'error');
+                }
+            },
+
+            exportToCSV: () => {
+                const rows = app.state.files.map(f => f.data);
+                if (rows.length === 0) return;
+
+                const headers = ["Fecha", "RUC", "Razón Social", "Tipo", "Serie", "Num", "Moneda", "Subtotal", "IGV", "Total", "Detraccion", "Obs"];
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(r => [
+                        r.fecha_emision, r.ruc_dni, `"${r.razon_social}"`, r.tipo, 
+                        r.serie, r.numero, r.moneda, r.subtotal, r.igv, r.total, r.detraccion, `"${r.observaciones}"`
+                    ].join(','))
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = "facturas_ocr.csv";
+                link.click();
+            },
+
+            // --- UI HELPERS ---
+            ui: {
+                log: (msg) => {
+                    const panel = document.getElementById('logPanel');
+                    panel.classList.remove('hidden');
+                    const line = document.createElement('div');
+                    line.textContent = `> ${msg}`;
+                    panel.appendChild(line);
+                    panel.scrollTop = panel.scrollHeight;
+                },
+
+                updateGlobalProgress: () => {
+                    const total = app.state.files.length;
+                    const done = app.state.files.filter(f => f.status === 'done' || f.status === 'error').length;
+                    document.getElementById('queueCount').innerText = `${done}/${total}`;
+                    const pct = total === 0 ? 0 : (done / total) * 100;
+                    document.getElementById('globalProgress').style.width = `${pct}%`;
+                },
+
+                showPreview: (fileObj) => {
+                    const img = document.getElementById('previewImg');
+                    img.src = fileObj.blobUrl;
+                },
+
+                updateRowStatus: (id, status) => {
+                    const badge = document.querySelector(`tr[data-id="${id}"] .status-badge`);
+                    if (!badge) return;
+                    
+                    badge.className = `status-badge status-${status}`;
+                    if (status === 'processing') {
+                        badge.innerHTML = '<div class="loader"></div>';
+                    } else {
+                        badge.innerText = status;
+                    }
+                },
+
+                updateRowData: (id) => {
+                    const fileObj = app.state.files.find(f => f.id === id);
+                    if (!fileObj) return;
+                    const tr = document.querySelector(`tr[data-id="${id}"]`);
+                    if (!tr) return;
+
+                    // Actualizar inputs con datos extraídos
+                    const inputs = tr.querySelectorAll('input');
+                    inputs.forEach(input => {
+                        const field = input.name;
+                        if (fileObj.data[field]) input.value = fileObj.data[field];
+                        
+                        // Validación visual básica
+                        if (['fecha_emision', 'ruc_dni', 'total'].includes(field) && !input.value) {
+                            input.classList.add('validation-error');
+                        } else {
+                            input.classList.remove('validation-error');
+                        }
+                    });
+                    
+                    app.ui.calculateSum();
+                },
+                
+                calculateSum: () => {
+                    let sum = 0;
+                    app.state.files.forEach(f => {
+                         let val = parseFloat(f.data.total);
+                         if (!isNaN(val)) sum += val;
+                    });
+                    document.getElementById('sumTotal').innerText = sum.toFixed(2);
+                },
+
+                deleteRow: (id) => {
+                    app.state.files = app.state.files.filter(f => f.id !== id);
+                    app.ui.renderTable();
+                    app.ui.updateGlobalProgress();
+                    app.ui.calculateSum();
+                },
+
+                renderTable: () => {
+                    const tbody = document.getElementById('dataTableBody');
+                    tbody.innerHTML = '';
+
+                    app.state.files.forEach(fileObj => {
+                        const tr = document.createElement('tr');
+                        tr.setAttribute('data-id', fileObj.id);
+                        
+                        // Generar celdas editables
+                        const createInput = (field, val, width = 'w-full') => 
+                            `<input type="text" name="${field}" value="${val || ''}" onchange="app.updateField('${fileObj.id}', '${field}', this.value)">`;
+
+                        tr.innerHTML = `
+                            <td class="text-center">
+                                <button onclick="app.ui.deleteRow('${fileObj.id}')" class="text-red-500 hover:text-red-700"><i class="ph ph-trash"></i></button>
+                            </td>
+                            <td><span class="status-badge status-${fileObj.status}">${fileObj.status}</span></td>
+                            <td>${createInput('fecha_emision', fileObj.data.fecha_emision)}</td>
+                            <td>${createInput('ruc_dni', fileObj.data.ruc_dni)}</td>
+                            <td>${createInput('razon_social', fileObj.data.razon_social)}</td>
+                            <td>${createInput('tipo', fileObj.data.tipo)}</td>
+                            <td>${createInput('serie', fileObj.data.serie)}</td>
+                            <td>${createInput('numero', fileObj.data.numero)}</td>
+                            <td>${createInput('moneda', fileObj.data.moneda)}</td>
+                            <td>${createInput('subtotal', fileObj.data.subtotal)}</td>
+                            <td>${createInput('igv', fileObj.data.igv)}</td>
+                            <td class="bg-blue-50 font-bold">${createInput('total', fileObj.data.total)}</td>
+                            <td>${createInput('detraccion', fileObj.data.detraccion)}</td>
+                            <td class="text-xs text-slate-500 truncate max-w-[100px]" title="${fileObj.file.name}">${fileObj.file.name}</td>
+                            <td>${createInput('observaciones', fileObj.data.observaciones)}</td>
+                        `;
+                        
+                        // Click en fila para ver imagen
+                        tr.addEventListener('click', (e) => {
+                            if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                                app.ui.showPreview(fileObj);
+                            }
+                        });
+                        
+                        tbody.appendChild(tr);
+                    });
+                    app.ui.calculateSum();
+                }
+            },
+            
+            // Helper para actualizar modelo desde UI
+            updateField: (id, field, value) => {
+                const f = app.state.files.find(x => x.id === id);
+                if (f) {
+                    f.data[field] = value;
+                    app.ui.calculateSum();
+                    
+                    // Quitar error si se llena
+                    if(value) {
+                       const input = document.querySelector(`tr[data-id="${id}"] input[name="${field}"]`);
+                       if(input) input.classList.remove('validation-error');
+                    }
+                }
+            }
         };
 
-        // LOAD FROM LOCAL STORAGE ON STARTUP
-        let DB = JSON.parse(localStorage.getItem('kgb_db_v4')) || defaultData;
+        // Arrancar
+        document.addEventListener('DOMContentLoaded', app.init);
 
-        // --- CORE UI ---
-        function saveData() {
-            localStorage.setItem('kgb_db_v4', JSON.stringify(DB));
-        }
-
-        function hardReset() {
-            if(confirm("¡PELIGRO! ¿Borrar TODOS los datos y reiniciar de cero?")) {
-                localStorage.removeItem('kgb_db_v4');
-                location.reload();
-            }
-        }
-
-        function initApp() {
-            renderPosSelects();
-            renderFilterSeller();
-            renderSellerList();
-            renderProductList();
-            loadConfigUI();
-            updatePosCalc();
-            document.getElementById('pos-id').innerText = '#' + Math.floor(Math.random()*10000);
-        }
-
-        function switchAppTab(t){
-            document.querySelectorAll('.app-tab').forEach(e=>e.classList.add('hidden'));
-            document.getElementById('tab-'+t).classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active','bg-indigo-700','text-white','font-bold','shadow-lg'));
-            document.getElementById('nav-'+t).classList.add('active','bg-indigo-700','text-white','font-bold','shadow-lg');
-            if(t==='history'){renderFilterSeller();renderHistoryTable();}
-            if(t==='dashboard')updateDashboard();
-        }
-        function showToast(m){const t=document.getElementById('toast');document.getElementById('toast-msg').innerText=m;t.classList.remove('translate-y-40');setTimeout(()=>t.classList.add('translate-y-40'),3000);}
-
-        // --- POS LOGIC ---
-        function renderPosSelects() {
-            const sSel = document.getElementById('pos-seller');
-            const pSel = document.getElementById('pos-product');
-            const currS = sSel.value;
-            const currP = pSel.value;
-
-            sSel.innerHTML = DB.sellers.map(x=>`<option value="${x.name}">${x.name}</option>`).join('');
-            pSel.innerHTML = '<option value="">Seleccione...</option>' + DB.products.map((x,i)=>`<option value="${i}">${x.name}</option>`).join('');
-            
-            if(currS) sSel.value = currS;
-            if(currP && pSel.querySelector(`option[value="${currP}"]`)) pSel.value = currP;
-        }
-
-        function updatePosCalc(){
-            const idx=document.getElementById('pos-product').value; 
-            if(idx==="") {
-                document.getElementById('pos-cost').value = '0.00';
-                document.getElementById('pos-price').value = '0.00';
-                document.getElementById('pos-profit').innerText = '0.00';
-                return;
-            }
-            const p=DB.products[idx]; 
-            document.getElementById('pos-cost').value=p.cost.toFixed(2);
-            let val=parseFloat(document.getElementById('pos-price').value); 
-            if(val===0||isNaN(val)) { val=p.price; document.getElementById('pos-price').value=val.toFixed(2); }
-            
-            reCalcProfitOnly();
-        }
-
-        function reCalcProfitOnly() {
-            const cost = parseFloat(document.getElementById('pos-cost').value) || 0;
-            const price = parseFloat(document.getElementById('pos-price').value) || 0;
-            const prof = price - cost;
-            document.getElementById('pos-profit').innerText = prof.toFixed(2);
-        }
-
-        function submitSale(){
-            const idx=document.getElementById('pos-product').value; if(idx==="")return alert("Selecciona Plataforma");
-            const sellerName = document.getElementById('pos-seller').value;
-            if(!sellerName) return alert("Crea un vendedor primero en Configuración");
-
-            const p=DB.products[idx]; 
-            const price=parseFloat(document.getElementById('pos-price').value); 
-            const profit=price-p.cost;
-            
-            // Get seller phone for record
-            const sellerObj = DB.sellers.find(s => s.name === sellerName);
-            
-            DB.sales.push({
-                id:Math.floor(Date.now()/1000), 
-                date:new Date().toISOString(), 
-                seller: sellerName,
-                sellerPhone: sellerObj ? sellerObj.phone : '', 
-                product:p.name, 
-                client:document.getElementById('pos-client').value, 
-                phone:document.getElementById('pos-phone').value, 
-                price:price, cost:p.cost, profit:profit, 
-                admin:profit*DB.config.adminPct, 
-                sellerComm:profit*DB.config.sellerPct, 
-                status:'active'
-            });
-            saveData();
-            showToast("Venta Registrada"); 
-            document.getElementById('pos-client').value=''; 
-            document.getElementById('pos-phone').value=''; 
-            document.getElementById('pos-id').innerText='#'+Math.floor(Math.random()*10000);
-        }
-
-        // --- HISTORY ---
-        function renderFilterSeller() {
-            const f=document.getElementById('filter-seller'); 
-            const c=f.value; 
-            f.innerHTML='<option value="">-- Todos --</option>'+DB.sellers.map(x=>`<option value="${x.name}">${x.name}</option>`).join(''); 
-            f.value=c;
-        }
-        function getFilteredData() {
-            const s=document.getElementById('filter-start').value, e=document.getElementById('filter-end').value, sel=document.getElementById('filter-seller').value;
-            let d=DB.sales; 
-            if(s)d=d.filter(x=>x.date.split('T')[0]>=s); 
-            if(e)d=d.filter(x=>x.date.split('T')[0]<=e); 
-            if(sel)d=d.filter(x=>x.seller===sel); 
-            return d;
-        }
-
-        function renderHistoryTable() {
-            const data=getFilteredData();
-            let tc=0, ts=0, rc=0; 
-            data.forEach(x=>{ if(x.status!=='refunded'){tc+=x.sellerComm; ts+=x.price;}else{rc++;} });
-            
-            document.getElementById('liq-comm').innerText='S/ '+tc.toFixed(2); 
-            document.getElementById('liq-total').innerText='S/ '+ts.toFixed(2); 
-            document.getElementById('liq-count').innerText=data.length-rc; 
-            document.getElementById('liq-refunds').innerText=rc;
-            
-            data.sort((a,b)=>new Date(b.date)-new Date(a.date));
-            const tbody=document.getElementById('history-table-body');
-            tbody.innerHTML=data.map(s=>{
-                const isR=s.status==='refunded';
-                const safeS = JSON.stringify(s).replace(/"/g, '&quot;');
-                return `<tr class="border-b border-gray-100 transition group ${isR?'refunded-row':'hover:bg-slate-50'}">
-                    <td class="px-6 py-4 align-top ${isR?'refunded-text':''}">
-                        <div class="font-black text-indigo-900 text-sm mb-1 uppercase tracking-wide">${s.product}</div>
-                        <div class="flex items-center gap-2 text-xs text-slate-500 font-medium"><span>${new Date(s.date).toLocaleDateString()}</span><span class="w-1 h-1 bg-slate-300 rounded-full"></span><span>${s.seller}</span></div>
-                    </td>
-                    <td class="px-6 py-4 align-top ${isR?'refunded-text':''}">
-                        <div class="font-bold text-slate-700 text-sm mb-1">${s.client || 'Sin Nombre'}</div>
-                        <div class="text-xs text-slate-400 font-mono">${s.phone || '--'}</div>
-                    </td>
-                    <td class="px-6 py-4 text-right align-middle">
-                        ${isR ? '<span class="text-xs font-bold text-red-800">S/ 0.00</span>' : `<div class="font-black text-emerald-600 text-lg">S/ ${s.sellerComm.toFixed(2)}</div>`}
-                    </td>
-                    <td class="px-6 py-4 text-center align-middle">
-                        ${isR ? '<span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">Reembolsado</span>' 
-                              : `<div class="flex justify-center gap-2">
-                                   <button onclick="confirmRefund(${s.id})" title="Devolución" class="w-8 h-8 rounded-lg border border-gray-200 text-red-400 hover:bg-red-50 hover:text-red-600 transition flex items-center justify-center"><i class="fa-solid fa-rotate-left"></i></button>
-                                   <button onclick='copyVoucher(${safeS})' title="Copiar" class="w-8 h-8 rounded-lg border border-gray-200 text-blue-500 hover:bg-blue-50 hover:text-blue-700 transition flex items-center justify-center"><i class="fa-regular fa-copy"></i></button>
-                                   <button onclick='sendWhatsapp(${safeS})' title="WhatsApp" class="w-8 h-8 rounded-lg border border-gray-200 text-green-500 hover:bg-green-50 hover:text-green-700 transition flex items-center justify-center"><i class="fa-brands fa-whatsapp font-bold"></i></button>
-                                 </div>`}
-                    </td>
-                </tr>`
-            }).join('');
-        }
-
-        // --- ACTIONS ---
-        function copyVoucher(s) {
-            const text = `🎫 KGB STREAMING - REGISTRO\n---------------------------\n🆔 ID: #${s.id}\n📆 Fecha: ${new Date(s.date).toLocaleDateString()}\n📺 Servicio: ${s.product}\n💰 TU COMISIÓN: S/ ${s.sellerComm.toFixed(2)}\n---------------------------\n✅ Validado en Sistema`;
-            const t = document.createElement("textarea"); t.value = text; t.style.position="fixed"; t.style.opacity="0"; document.body.appendChild(t); t.focus(); t.select();
-            try { document.execCommand('copy'); showToast("Voucher Copiado"); } catch(e){ showToast("Error al copiar"); }
-            document.body.removeChild(t);
-        }
-        function sendWhatsapp(s) {
-            let phone = s.sellerPhone;
-            if(!phone) { const sellerObj = DB.sellers.find(sel => sel.name === s.seller); if(sellerObj) phone = sellerObj.phone; }
-            if(!phone) return alert("No hay teléfono registrado para este vendedor.");
-            const text = `🎫 KGB STREAMING - REGISTRO\n---------------------------\n🆔 ID: #${s.id}\n📆 Fecha: ${new Date(s.date).toLocaleDateString()}\n📺 Servicio: ${s.product}\n💰 TU COMISIÓN: S/ ${s.sellerComm.toFixed(2)}\n---------------------------\n✅ Validado en Sistema`;
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
-        }
-        
-        let refId=null; function confirmRefund(id){ refId=id; document.getElementById('confirm-modal').classList.remove('hidden'); }
-        function closeConfirm(){ document.getElementById('confirm-modal').classList.add('hidden'); refId=null; }
-        document.getElementById('btn-do-refund').onclick=function(){ 
-            if(refId){ const s=DB.sales.find(x=>x.id===refId); if(s){s.status='refunded'; saveData(); showToast("Anulado"); renderHistoryTable();} } 
-            closeConfirm(); 
-        };
-
-        function exportToExcel() {
-            const data=getFilteredData(); if(data.length===0) return alert("Sin datos");
-            const ws=XLSX.utils.json_to_sheet(data.map(x=>({Fecha:new Date(x.date).toLocaleDateString(), Vendedor:x.seller, Cliente:x.client, Telefono:x.phone, Plataforma:x.product, Comision:x.status==='refunded'?0:x.sellerComm, Precio:x.status==='refunded'?0:x.price, Estado:x.status==='refunded'?'DEV':'OK'})));
-            const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Ventas"); XLSX.writeFile(wb,"KGB_Reporte.xlsx");
-        }
-
-        // --- CONFIG & DELETE FIX ---
-        function loadConfigUI() {
-            document.getElementById('range-admin').value = DB.config.adminPct * 100;
-            document.getElementById('range-seller').value = DB.config.sellerPct * 100;
-            updateConfigRange('admin'); renderSellerList(); renderProductList();
-        }
-        function updateConfigRange(src) {
-            const a=document.getElementById('range-admin'),b=document.getElementById('range-seller'); let v=parseInt(src==='admin'?a.value:b.value); if(src==='admin')b.value=100-v; else a.value=100-v; document.getElementById('display-admin-pct').innerText=a.value+'%'; document.getElementById('display-seller-pct').innerText=b.value+'%';
-        }
-        function saveConfigPercentages(){ DB.config.adminPct=document.getElementById('range-admin').value/100; DB.config.sellerPct=document.getElementById('range-seller').value/100; saveData(); showToast("Guardado"); updatePosCalc(); }
-        
-        function renderSellerList() { 
-            document.getElementById('config-seller-list').innerHTML=DB.sellers.map((s)=>`
-            <li class="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm group">
-                <div><span class="font-bold text-slate-700 block">${s.name}</span><span class="text-xs text-slate-400 font-mono"><i class="fa-solid fa-phone mr-1"></i>${s.phone||'--'}</span></div>
-                <button onclick="delSeller(${s.id}, '${s.name}')" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash fa-lg"></i></button>
-            </li>`).join(''); 
-        }
-        function addSeller() { 
-            const n=document.getElementById('new-seller-name').value; const ph=document.getElementById('new-seller-phone').value;
-            if(n){ DB.sellers.push({id: Date.now(), name:n, phone:ph}); document.getElementById('new-seller-name').value=''; document.getElementById('new-seller-phone').value=''; saveData(); renderSellerList(); renderPosSelects(); showToast("Agregado"); } 
-        }
-        function delSeller(id, name){ 
-            if(confirm(`¿Eliminar a ${name}?`)){
-                DB.sellers = DB.sellers.filter(s => s.id !== id);
-                saveData(); 
-                renderSellerList(); 
-                renderPosSelects(); // Important update
-                showToast("Eliminado");
-            } 
-        }
-
-        function renderProductList() { document.getElementById('config-prod-list').innerHTML=DB.products.map((p,i)=>`<tr class="border-b border-gray-50 hover:bg-slate-50 transition"><td class="p-4 font-bold text-slate-700">${p.name}</td><td class="p-4 text-slate-500">S/ ${p.cost}</td><td class="p-4 font-bold text-indigo-600">S/ ${p.price}</td><td class="p-4 text-right"><button onclick="delProd(${p.id})" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button></td></tr>`).join(''); }
-        function addProduct() { const n=document.getElementById('new-prod-name').value, c=parseFloat(document.getElementById('new-prod-cost').value), p=parseFloat(document.getElementById('new-prod-price').value); if(n&&c&&p){ DB.products.push({id:Date.now(), name:n,cost:c,price:p}); document.getElementById('new-prod-name').value=''; saveData(); renderProductList(); renderPosSelects(); showToast("Agregado"); } }
-        function delProd(id){ if(confirm('¿Borrar?')){ DB.products=DB.products.filter(p=>p.id!==id); saveData(); renderProductList(); renderPosSelects(); } }
-
-        // --- DASHBOARD ---
-        function updateDashboard(){
-            let t=0,a=0,s=0,c=0; const ss={},pp={}; DB.sales.forEach(x=>{ if(x.status!=='refunded'){ t+=x.price; a+=x.admin; s+=x.sellerComm; c++; if(!ss[x.seller])ss[x.seller]=0; ss[x.seller]+=x.sellerComm; if(!pp[x.product])pp[x.product]=0; pp[x.product]+=1; } });
-            document.getElementById('dash-total').innerText='S/ '+t.toFixed(2); document.getElementById('dash-admin').innerText='S/ '+a.toFixed(2); document.getElementById('dash-seller').innerText='S/ '+s.toFixed(2); document.getElementById('dash-count').innerText=c;
-            const ctxS=document.getElementById('chartSellers').getContext('2d'); new Chart(ctxS,{type:'bar',data:{labels:Object.keys(ss),datasets:[{label:'Comisión',data:Object.values(ss),backgroundColor:'#4f46e5',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
-            const ctxP=document.getElementById('chartProducts').getContext('2d'); new Chart(ctxP,{type:'doughnut',data:{labels:Object.keys(pp),datasets:[{data:Object.values(pp),backgroundColor:['#6366f1','#10b981','#f59e0b','#ec4899','#8b5cf6'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}});
-        }
-
-        window.onload = initApp;
     </script>
 </body>
 </html>
