@@ -1,491 +1,391 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Calculator, 
-  MessageCircle, 
-  MapPin, 
-  Sprout, 
-  ChevronRight,
-  ChevronLeft,
-  Menu,
-  X,
-  Search,
-  ShoppingCart,
-  Leaf,
-  Bot,
-  Clock,
-  Smartphone
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perú Fértil - Catálogo Oficial</title>
+    
+    <!-- Tailwind CSS para los estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Iconos de FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React, ReactDOM y Babel (Permite ejecutar React directamente en el HTML) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-export default function App() {
-  const [region, setRegion] = useState('Nacional');
-  const [roiForm, setRoiForm] = useState({ cultivo: 'Papa', hectareas: 1, inversion: 1000 });
-  const [roiResult, setRoiResult] = useState(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('Todos');
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Estados para controlar el Carrusel y los Modales (Ventanas emergentes)
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [activeModal, setActiveModal] = useState(null); // 'roi', 'clinica', o null
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+    
+    <!-- Aquí se inyectará la aplicación -->
+    <div id="root"></div>
 
-  // --- DATOS DEL CARRUSEL ---
-  const slides = [
-    {
-      imagen: 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?q=80&w=2070&auto=format&fit=crop',
-      badge: 'Campaña Agrícola 2026',
-      title: 'La tecnología de los grandes fundos, en tu chacra',
-      subtitle: 'Descubre soluciones en protección de cultivos y nutrición de alto rendimiento.'
-    },
-    {
-      imagen: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=2069&auto=format&fit=crop',
-      badge: 'Protección Fitosanitaria',
-      title: 'Máximo control contra plagas y malezas',
-      subtitle: 'Línea de insecticidas y herbicidas de acción fulminante y prolongada.'
-    },
-    {
-      imagen: 'https://images.unsplash.com/photo-1586771107445-d3af242d55e0?q=80&w=2070&auto=format&fit=crop',
-      badge: 'Nutrición Especializada',
-      title: 'Asegura calibres y firmeza de exportación',
-      subtitle: 'Bioestimulantes y fertilizantes foliares para potenciar tu cosecha.'
-    }
-  ];
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-  // Auto-reproducción del carrusel
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-    }, 5000); // Cambia cada 5 segundos
-    return () => clearInterval(timer);
-  }, [slides.length]);
-
-  const nextSlide = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-  const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-
-  // --- BASE DE DATOS DEL CATÁLOGO ---
-  const catalogoProductos = [
-    // INSECTICIDAS
-    { nombre: 'TOBIANO®', categoria: 'Insecticida', ia: 'Chlorfenapyr 240 g/Lt', dosis: '1 Lt', desc: 'Actúa por contacto e ingestión con eficiente actividad translaminar. Controla trips, mosca blanca y cogollero.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Tobiano]' },
-    { nombre: 'ABIGEO®', categoria: 'Insecticida', ia: 'Chlorantraniliprole 100 g/L + Thiamethoxam 200 g/L', dosis: '1 Lt - 250 ml', desc: 'Mezcla moderna de dos modos de acción. Controla gusano cogollero en maíz, sogata y mosquilla en arroz.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Abigeo]' },
-    { nombre: 'CYPERZHIÑA®', categoria: 'Insecticida', ia: 'Cypermethrin 250 g/L', dosis: '1 Lt - 250 ml', desc: 'Acción por contacto e ingestión. Provoca parálisis y muerte inmediata de orugas, mosca blanca y pulgones.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Cyperzhiña]' },
-    { nombre: 'FRY-DA®', categoria: 'Insecticida', ia: 'Fipronil 400 g/kg + Imidacloprid 400 g/kg', dosis: '100 gr', desc: 'Acción por contacto e ingestión con prolongado efecto residual para insectos chupadores.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Fry-Da]' },
-    // FUNGICIDAS
-    { nombre: 'FELIÑHA®', categoria: 'Fungicida', ia: 'Azoxystrobin 200 g/L + Difenoconazole 125 g/L', dosis: '1 Lt - 250 ml', desc: 'Acción preventiva y curativa con efecto sistémico. Especialmente indicado para el control de Moniliasis.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Feliñha]' },
-    { nombre: 'X-PLENDOR®', categoria: 'Fungicida', ia: 'Chlorothalonil 450 g/L + Dimethomorph 90 g/L', dosis: '1 Lt - 250 ml', desc: 'Sistémico y de contacto. Controla hielo o rancha, alternaria, mildiu y botrytis.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+X-Plendor]' },
-    { nombre: 'VA-KUNELO®', categoria: 'Fungicida', ia: 'Azoxystrobin 500 g/kg', dosis: '100 gr', desc: 'Sistémico de amplio espectro. Inhibe la germinación de esporas (Botrytis, Mildiu, Roya, Antracnosis).', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Va-Kunelo]' },
-    // HERBICIDAS
-    { nombre: 'KAMEX®', categoria: 'Herbicida', ia: 'Ametryn 500 g/L', dosis: '1 Lt', desc: 'Sistémico de amplio espectro que inhibe la fotosíntesis. Controla malezas de hoja ancha.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Kamex]' },
-    { nombre: 'BATAN 480®', categoria: 'Herbicida', ia: 'Glyphosate Sal isopropilamina 480 g/L', dosis: '1 Lt - 20 Lt', desc: 'Eficaz en control de malezas anuales y perennes. Elimina la maleza desde la raíz.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Batan+480]' },
-    // NUTRICION / BIOESTIMULANTES
-    { nombre: 'INKA POWER 35-10-10®', categoria: 'Nutrición', ia: 'N 35% + P 10% + K 10% + Fitohormonas', dosis: '1 Lt', desc: 'Alto contenido de nitrógeno y microelementos para el arranque y desarrollo vegetativo inicial.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Inka+Power]' },
-    { nombre: 'LATIN FOL POTASIO®', categoria: 'Nutrición', ia: 'K2O 48% + Algas Marinas 20%', dosis: '1 Lt', desc: 'Mejora fructificación y maduración. Aumenta tamaño, color y firmeza de los frutos.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Latin+Fol]' },
-    { nombre: 'XTRA BIOL K50®', categoria: 'Nutrición', ia: 'K2O 50% + Hormonas 5%', dosis: '1 Lt', desc: 'Fertilizante órgano-mineral que impulsa la floración, cuaje y desarrollo de frutos.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Xtra+Biol]' },
-    // ESPECIALIDADES
-    { nombre: 'GOMAFOL ULTRA MAX®', categoria: 'Especialidades', ia: 'Nonifenol poliglicol éter 200 g/L', dosis: '1 Lt - 250 ml', desc: 'Adherente viscoso. Mejora cobertura, adherencia y absorción de los agroquímicos en las hojas.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Gomafol]' }
-  ];
-
-  const categorias = ['Todos', 'Insecticida', 'Fungicida', 'Herbicida', 'Nutrición', 'Especialidades'];
-
-  const productosFiltrados = catalogoProductos.filter(prod => {
-    const coincideCategoria = activeTab === 'Todos' || prod.categoria === activeTab;
-    const coincideBusqueda = prod.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || prod.ia.toLowerCase().includes(searchTerm.toLowerCase());
-    return coincideCategoria && coincideBusqueda;
-  });
-
-  // Lógica Calculadora ROI
-  const calculateROI = (e) => {
-    e.preventDefault();
-    const multipliers = { 'Papa': 3.5, 'Arroz': 2.8, 'Maíz': 2.5, 'Café': 4.2, 'Uva': 5.5, 'Palta': 4.8 };
-    const factor = multipliers[roiForm.cultivo] || 3;
-    const gananciaEstimada = roiForm.inversion * factor * roiForm.hectareas;
-    setRoiResult(gananciaEstimada);
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800 scroll-smooth">
-      
-      {/* NAVBAR */}
-      <nav className="bg-white shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-24">
+        function App() {
+            const [region, setRegion] = useState('Nacional');
+            const [roiForm, setRoiForm] = useState({ cultivo: 'Papa', hectareas: 1, inversion: 1000 });
+            const [roiResult, setRoiResult] = useState(null);
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const [activeTab, setActiveTab] = useState('Todos');
+            const [searchTerm, setSearchTerm] = useState('');
             
-            {/* LADO IZQUIERDO: MENÚ HAMBURGUESA + LOGO */}
-            <div className="flex items-center">
-              {/* Botón Hamburguesa a la izquierda */}
-              <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)} 
-                className="text-gray-600 p-2 mr-4 hover:bg-gray-100 rounded-lg transition"
-                aria-label="Abrir menú"
-              >
-                {isMenuOpen ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
-              </button>
+            const [currentSlide, setCurrentSlide] = useState(0);
+            const [activeModal, setActiveModal] = useState(null); 
 
-              {/* Logo */}
-              <div className="bg-green-800 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center shadow-inner border-2 border-green-600">
-                <Sprout className="h-6 w-6 sm:h-8 sm:w-8 text-green-300 mr-2" />
-                <div className="flex flex-col">
-                  <span className="text-lg sm:text-xl font-black leading-none tracking-tight">PERÚ FÉRTIL</span>
-                  <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-green-200">CALIDAD EN TU CAMPO</span>
+            // --- DATOS DEL CARRUSEL ---
+            const slides = [
+                {
+                    imagen: 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?q=80&w=2070&auto=format&fit=crop',
+                    badge: 'Campaña Agrícola 2026',
+                    title: 'La tecnología de los grandes fundos, en tu chacra',
+                    subtitle: 'Descubre soluciones en protección de cultivos y nutrición de alto rendimiento.'
+                },
+                {
+                    imagen: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=2069&auto=format&fit=crop',
+                    badge: 'Protección Fitosanitaria',
+                    title: 'Máximo control contra plagas y malezas',
+                    subtitle: 'Línea de insecticidas y herbicidas de acción fulminante y prolongada.'
+                },
+                {
+                    imagen: 'https://images.unsplash.com/photo-1586771107445-d3af242d55e0?q=80&w=2070&auto=format&fit=crop',
+                    badge: 'Nutrición Especializada',
+                    title: 'Asegura calibres y firmeza de exportación',
+                    subtitle: 'Bioestimulantes y fertilizantes foliares para potenciar tu cosecha.'
+                }
+            ];
+
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+                }, 5000); 
+                return () => clearInterval(timer);
+            }, [slides.length]);
+
+            const nextSlide = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+            const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+
+            // --- BASE DE DATOS DEL CATÁLOGO ---
+            const catalogoProductos = [
+                { nombre: 'TOBIANO®', categoria: 'Insecticida', ia: 'Chlorfenapyr 240 g/Lt', dosis: '1 Lt', desc: 'Actúa por contacto e ingestión con eficiente actividad translaminar. Controla trips, mosca blanca y cogollero.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Tobiano]' },
+                { nombre: 'ABIGEO®', categoria: 'Insecticida', ia: 'Chlorantraniliprole 100 g/L + Thiamethoxam 200 g/L', dosis: '1 Lt - 250 ml', desc: 'Mezcla moderna de dos modos de acción. Controla gusano cogollero en maíz, sogata y mosquilla en arroz.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Abigeo]' },
+                { nombre: 'CYPERZHIÑA®', categoria: 'Insecticida', ia: 'Cypermethrin 250 g/L', dosis: '1 Lt - 250 ml', desc: 'Acción por contacto e ingestión. Provoca parálisis y muerte inmediata de orugas, mosca blanca y pulgones.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Cyperzhiña]' },
+                { nombre: 'FRY-DA®', categoria: 'Insecticida', ia: 'Fipronil 400 g/kg + Imidacloprid 400 g/kg', dosis: '100 gr', desc: 'Acción por contacto e ingestión con prolongado efecto residual para insectos chupadores.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Fry-Da]' },
+                { nombre: 'FELIÑHA®', categoria: 'Fungicida', ia: 'Azoxystrobin 200 g/L + Difenoconazole 125 g/L', dosis: '1 Lt - 250 ml', desc: 'Acción preventiva y curativa con efecto sistémico. Especialmente indicado para el control de Moniliasis.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Feliñha]' },
+                { nombre: 'X-PLENDOR®', categoria: 'Fungicida', ia: 'Chlorothalonil 450 g/L + Dimethomorph 90 g/L', dosis: '1 Lt - 250 ml', desc: 'Sistémico y de contacto. Controla hielo o rancha, alternaria, mildiu y botrytis.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+X-Plendor]' },
+                { nombre: 'VA-KUNELO®', categoria: 'Fungicida', ia: 'Azoxystrobin 500 g/kg', dosis: '100 gr', desc: 'Sistémico de amplio espectro. Inhibe la germinación de esporas (Botrytis, Mildiu, Roya, Antracnosis).', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Va-Kunelo]' },
+                { nombre: 'KAMEX®', categoria: 'Herbicida', ia: 'Ametryn 500 g/L', dosis: '1 Lt', desc: 'Sistémico de amplio espectro que inhibe la fotosíntesis. Controla malezas de hoja ancha.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Kamex]' },
+                { nombre: 'BATAN 480®', categoria: 'Herbicida', ia: 'Glyphosate Sal isopropilamina 480 g/L', dosis: '1 Lt - 20 Lt', desc: 'Eficaz en control de malezas anuales y perennes. Elimina la maleza desde la raíz.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Batan+480]' },
+                { nombre: 'INKA POWER 35-10-10®', categoria: 'Nutrición', ia: 'N 35% + P 10% + K 10% + Fitohormonas', dosis: '1 Lt', desc: 'Alto contenido de nitrógeno y microelementos para el arranque y desarrollo vegetativo inicial.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Inka+Power]' },
+                { nombre: 'LATIN FOL POTASIO®', categoria: 'Nutrición', ia: 'K2O 48% + Algas Marinas 20%', dosis: '1 Lt', desc: 'Mejora fructificación y maduración. Aumenta tamaño, color y firmeza de los frutos.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Latin+Fol]' },
+                { nombre: 'XTRA BIOL K50®', categoria: 'Nutrición', ia: 'K2O 50% + Hormonas 5%', dosis: '1 Lt', desc: 'Fertilizante órgano-mineral que impulsa la floración, cuaje y desarrollo de frutos.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Xtra+Biol]' },
+                { nombre: 'GOMAFOL ULTRA MAX®', categoria: 'Especialidades', ia: 'Nonifenol poliglicol éter 200 g/L', dosis: '1 Lt - 250 ml', desc: 'Adherente viscoso. Mejora cobertura, adherencia y absorción de los agroquímicos en las hojas.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Gomafol]' }
+            ];
+
+            const categorias = ['Todos', 'Insecticida', 'Fungicida', 'Herbicida', 'Nutrición', 'Especialidades'];
+
+            const productosFiltrados = catalogoProductos.filter(prod => {
+                const coincideCategoria = activeTab === 'Todos' || prod.categoria === activeTab;
+                const coincideBusqueda = prod.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || prod.ia.toLowerCase().includes(searchTerm.toLowerCase());
+                return coincideCategoria && coincideBusqueda;
+            });
+
+            const calculateROI = (e) => {
+                e.preventDefault();
+                const multipliers = { 'Papa': 3.5, 'Arroz': 2.8, 'Maíz': 2.5, 'Café': 4.2, 'Uva': 5.5, 'Palta': 4.8 };
+                const factor = multipliers[roiForm.cultivo] || 3;
+                const gananciaEstimada = roiForm.inversion * factor * roiForm.hectareas;
+                setRoiResult(gananciaEstimada);
+            };
+
+            return (
+                <div className="min-h-screen">
+                    {/* NAVBAR */}
+                    <nav className="bg-white shadow-md sticky top-0 z-50">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center h-24">
+                                <div className="flex items-center">
+                                    <button 
+                                        onClick={() => setIsMenuOpen(!isMenuOpen)} 
+                                        className="text-gray-600 p-2 mr-4 hover:bg-gray-100 rounded-lg transition"
+                                    >
+                                        <i className={`fa-solid ${isMenuOpen ? 'fa-xmark' : 'fa-bars'} text-2xl`}></i>
+                                    </button>
+
+                                    {/* LOGO PERÚ FÉRTIL */}
+                                    <div className="bg-green-800 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center shadow-inner border-2 border-green-600">
+                                        <i className="fa-solid fa-seedling text-green-300 text-xl sm:text-2xl mr-2"></i>
+                                        <div className="flex flex-col">
+                                            <span className="text-lg sm:text-xl font-black leading-none tracking-tight">PERÚ FÉRTIL</span>
+                                            <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-green-200">CALIDAD EN TU CAMPO</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="hidden lg:flex items-center space-x-4">
+                                    <button 
+                                        onClick={() => setActiveModal('roi')}
+                                        className="text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 px-5 py-2.5 rounded-full font-bold transition flex items-center shadow-sm"
+                                    >
+                                        <i className="fa-solid fa-calculator mr-2"></i> Calculadora ROI
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveModal('clinica')}
+                                        className="bg-green-600 text-white px-6 py-2.5 rounded-full font-bold hover:bg-green-700 transition flex items-center shadow-lg hover:shadow-green-500/30"
+                                    >
+                                        <i className="fa-solid fa-robot mr-2"></i> Clínica 24/7 (Bot)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Menú Móvil */}
+                        {isMenuOpen && (
+                            <div className="bg-white border-t border-gray-100 px-4 py-4 space-y-3 shadow-xl absolute w-full lg:w-80 left-0 z-50 rounded-b-2xl border-r">
+                                <a href="#catalogo" onClick={() => setIsMenuOpen(false)} className="block text-gray-700 font-bold text-lg py-3 border-b border-gray-50 hover:text-green-600">
+                                    <i className="fa-solid fa-leaf mr-3"></i> Catálogo de Productos
+                                </a>
+                                <button onClick={() => {setActiveModal('roi'); setIsMenuOpen(false);}} className="w-full text-left text-gray-600 font-bold text-lg py-3 border-b border-gray-50 hover:text-green-600">
+                                    <i className="fa-solid fa-calculator mr-3"></i> Calculadora de Ganancias
+                                </button>
+                                <button onClick={() => {setActiveModal('clinica'); setIsMenuOpen(false);}} className="w-full text-left text-gray-600 font-bold text-lg py-3 border-b border-gray-50 hover:text-green-600">
+                                    <i className="fa-solid fa-robot mr-3"></i> Clínica 24/7 (Bot WhatsApp)
+                                </button>
+                            </div>
+                        )}
+                    </nav>
+
+                    <div className="bg-green-900 text-green-50 text-sm py-2 px-4 text-center flex justify-center items-center gap-2 relative z-40">
+                        <i className="fa-solid fa-location-dot"></i>
+                        <span className="hidden sm:inline">Viendo soluciones para:</span>
+                        <select 
+                            value={region} 
+                            onChange={(e) => setRegion(e.target.value)}
+                            className="bg-green-800 text-white border border-green-700 rounded text-sm px-2 py-1 focus:ring-0 cursor-pointer outline-none"
+                        >
+                            <option value="Nacional">Todo el Perú</option>
+                            <option value="Piura">Piura (Norte)</option>
+                            <option value="Ica">Ica (Sur)</option>
+                            <option value="Junín">Junín (Centro)</option>
+                        </select>
+                    </div>
+
+                    {/* CARRUSEL */}
+                    <section className="relative bg-gray-900 overflow-hidden h-[500px] md:h-[600px] flex items-center group">
+                        {slides.map((slide, index) => (
+                            <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                                <img src={slide.imagen} alt={slide.title} className="w-full h-full object-cover opacity-50" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-green-950/95 to-green-900/40"></div>
+                                <div className="absolute inset-0 flex items-center justify-center lg:justify-start">
+                                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                                        <div className="max-w-2xl transform transition-all duration-700 translate-y-0 opacity-100">
+                                            <span className="inline-block py-1.5 px-4 rounded-full bg-green-500/20 border border-green-400 text-green-300 text-xs sm:text-sm font-bold mb-4 tracking-wide uppercase shadow-sm">
+                                                {slide.badge}
+                                            </span>
+                                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-4 drop-shadow-lg">{slide.title}</h1>
+                                            <p className="text-lg sm:text-xl text-gray-200 mb-8 leading-relaxed drop-shadow-md">{slide.subtitle}</p>
+                                            <a href="#catalogo" className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-full text-green-900 bg-green-400 hover:bg-green-300 transition shadow-[0_0_20px_rgba(74,222,128,0.4)]">
+                                                Ver Catálogo
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-green-600 text-white p-3 rounded-full backdrop-blur-sm transition opacity-0 group-hover:opacity-100">
+                            <i className="fa-solid fa-chevron-left text-2xl"></i>
+                        </button>
+                        <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-green-600 text-white p-3 rounded-full backdrop-blur-sm transition opacity-0 group-hover:opacity-100">
+                            <i className="fa-solid fa-chevron-right text-2xl"></i>
+                        </button>
+                        <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center space-x-3">
+                            {slides.map((_, index) => (
+                                <button key={index} onClick={() => setCurrentSlide(index)} className={`w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-green-400 scale-125' : 'bg-white/50 hover:bg-white/80'}`} />
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* CATÁLOGO */}
+                    <section id="catalogo" className="py-20 bg-white">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="text-center mb-12">
+                                <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">Catálogo Oficial</h2>
+                                <p className="text-xl text-gray-500 max-w-3xl mx-auto">Nuestra línea completa de protección fitosanitaria y nutrición vegetal.</p>
+                                <div className="w-24 h-1.5 bg-green-500 mx-auto mt-6 rounded-full"></div>
+                            </div>
+
+                            <div className="flex flex-col lg:flex-row justify-between items-center mb-10 gap-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <div className="flex overflow-x-auto w-full lg:w-auto space-x-2 pb-2 scrollbar-hide">
+                                    {categorias.map(cat => (
+                                        <button key={cat} onClick={() => setActiveTab(cat)} className={`px-6 py-3 rounded-xl font-bold whitespace-nowrap transition-all duration-300 ${activeTab === cat ? 'bg-green-800 text-white shadow-lg' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="relative w-full lg:w-96">
+                                    <input type="text" placeholder="Ej. Tobiano, Chlorfenapyr, Mildiu..." className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                    <i className="fa-solid fa-magnifying-glass absolute left-4 top-4.5 text-gray-400 mt-[2px]"></i>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                                {productosFiltrados.map((prod, idx) => (
+                                    <div key={idx} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group flex flex-col relative overflow-hidden">
+                                        <div className={`absolute top-0 left-0 w-full h-1.5 z-20 ${prod.categoria === 'Insecticida' ? 'bg-red-500' : prod.categoria === 'Fungicida' ? 'bg-purple-500' : prod.categoria === 'Herbicida' ? 'bg-orange-500' : prod.categoria === 'Especialidades' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                                        <div className="relative h-56 w-full bg-gray-50 border-b border-gray-100 overflow-hidden flex items-center justify-center">
+                                            <img src={prod.imagen} alt={`Envase de ${prod.nombre}`} className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500" />
+                                            <div className="absolute top-4 left-3 right-3 flex justify-between items-start z-10">
+                                                <span className={`text-[10px] font-black px-3 py-1.5 rounded-md uppercase tracking-wider shadow-sm backdrop-blur-md bg-white/95 ${prod.categoria === 'Insecticida' ? 'text-red-700 border border-red-200' : prod.categoria === 'Fungicida' ? 'text-purple-700 border border-purple-200' : prod.categoria === 'Herbicida' ? 'text-orange-700 border border-orange-200' : prod.categoria === 'Especialidades' ? 'text-blue-700 border border-blue-200' : 'text-green-700 border border-green-200'}`}>
+                                                    {prod.categoria}
+                                                </span>
+                                                <span className="text-[11px] font-bold text-gray-700 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-md border border-gray-200 shadow-sm">{prod.dosis}</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-6 flex flex-col flex-grow">
+                                            <h3 className="text-xl font-black text-gray-900 mb-2 group-hover:text-green-700 transition-colors">{prod.nombre}</h3>
+                                            <div className="flex items-start mb-4 bg-green-50/50 p-2.5 rounded-lg border border-green-100/50">
+                                                <i className="fa-solid fa-leaf text-green-600 mr-2 mt-0.5"></i>
+                                                <p className="text-xs text-gray-700 font-bold leading-tight" title={prod.ia}>{prod.ia}</p>
+                                            </div>
+                                            <p className="text-gray-600 text-sm mb-6 flex-grow leading-relaxed line-clamp-3">{prod.desc}</p>
+                                            <button className="w-full bg-gray-900 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl transition-colors flex justify-center items-center shadow-md">
+                                                <i className="fa-solid fa-cart-shopping mr-2"></i> Cotizar
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* MODAL CLÍNICA */}
+                    {activeModal === 'clinica' && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+                            <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" onClick={() => setActiveModal(null)}></div>
+                            <div className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-fade-in-up max-h-[90vh]">
+                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 p-2 rounded-full transition z-20">
+                                    <i className="fa-solid fa-xmark text-xl"></i>
+                                </button>
+                                <div className="w-full md:w-1/2 bg-gray-900 p-10 text-white flex flex-col justify-center relative overflow-hidden border-r-8 border-green-500">
+                                    <h2 className="text-3xl font-black mb-4 relative z-10">Clínica <span className="text-green-400">24/7</span> WhatsApp</h2>
+                                    <p className="text-gray-300 mb-6 relative z-10">Nuestro Bot Agrónomo te dará la receta exacta al instante, sea la hora que sea.</p>
+                                    <ul className="space-y-4 mb-8 relative z-10">
+                                        <li className="flex items-center text-sm"><i className="fa-regular fa-clock text-green-400 mr-3 text-lg"></i> Respuestas a cualquier hora.</li>
+                                        <li className="flex items-center text-sm"><i className="fa-solid fa-mobile-screen text-green-400 mr-3 text-lg"></i> Diagnóstico subiendo una foto.</li>
+                                        <li className="flex items-center text-sm"><i className="fa-solid fa-robot text-green-400 mr-3 text-lg"></i> Recomendación de nuestro catálogo.</li>
+                                    </ul>
+                                    <a href="#" className="inline-flex items-center justify-center px-6 py-4 font-bold rounded-xl text-green-900 bg-green-400 hover:bg-green-300 transition shadow-lg relative z-10">
+                                        <i className="fa-brands fa-whatsapp mr-2 text-xl"></i> Abrir WhatsApp Ahora
+                                    </a>
+                                </div>
+                                <div className="w-full md:w-1/2 bg-[#E5DDD5] p-6 flex flex-col justify-center relative overflow-y-auto">
+                                    <div className="bg-white p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm text-gray-800 shadow-sm relative z-10 mb-3">
+                                        ¡Hola! Soy el asistente 24/7. ¿En qué te ayudo hoy?
+                                    </div>
+                                    <div className="bg-[#DCF8C6] p-3 rounded-lg rounded-tr-none self-end max-w-[85%] text-sm text-gray-800 shadow-sm relative z-10 mb-3">
+                                        Mi cultivo de papa tiene hojas amarillas. 📷
+                                    </div>
+                                    <div className="bg-white p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm text-gray-800 shadow-sm relative z-10">
+                                        Parece deficiencia. Te recomiendo <strong>Inka Power 35-10-10</strong>. ¿Deseas cotizar?
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL ROI */}
+                    {activeModal === 'roi' && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+                            <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" onClick={() => setActiveModal(null)}></div>
+                            <div className="relative bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-fade-in-up max-h-[90vh] overflow-y-auto">
+                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 p-2 rounded-full transition z-20">
+                                    <i className="fa-solid fa-xmark text-xl"></i>
+                                </button>
+                                <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+                                    <h2 className="text-3xl font-black text-green-900 mb-2">Calculadora de Ganancias</h2>
+                                    <p className="text-gray-500 mb-8">Descubre cuántos soles más vas a sacar por cada sol invertido.</p>
+                                    <form onSubmit={calculateROI} className="space-y-5">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Cultivo:</label>
+                                            <select className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none" value={roiForm.cultivo} onChange={(e) => setRoiForm({...roiForm, cultivo: e.target.value})}>
+                                                <option>Papa</option><option>Arroz</option><option>Maíz</option><option>Café</option><option>Uva</option><option>Palta</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex gap-4">
+                                            <div className="w-1/2">
+                                                <label className="block text-sm font-bold text-gray-700 mb-1">Hectáreas:</label>
+                                                <input type="number" min="0.5" step="0.5" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3" value={roiForm.hectareas} onChange={(e) => setRoiForm({...roiForm, hectareas: Number(e.target.value)})} />
+                                            </div>
+                                            <div className="w-1/2">
+                                                <label className="block text-sm font-bold text-gray-700 mb-1">Inversión (S/):</label>
+                                                <input type="number" min="100" step="100" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3" value={roiForm.inversion} onChange={(e) => setRoiForm({...roiForm, inversion: Number(e.target.value)})} />
+                                            </div>
+                                        </div>
+                                        <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition">
+                                            <i className="fa-solid fa-calculator mr-2"></i> Calcular Ganancia
+                                        </button>
+                                    </form>
+                                </div>
+                                <div className="w-full md:w-1/2 bg-green-900 p-8 md:p-12 text-white flex flex-col justify-center text-center">
+                                    {roiResult === null ? (
+                                        <div className="text-green-200"><i className="fa-solid fa-calculator text-6xl mb-4 opacity-50"></i><p>Ingresa tus datos para ver la proyección.</p></div>
+                                    ) : (
+                                        <div className="animate-fade-in-up">
+                                            <p className="text-green-300 font-bold mb-2 uppercase text-xs">Retorno Estimado</p>
+                                            <h3 className="text-5xl font-black mb-3">S/ {roiResult.toLocaleString('es-PE')}</h3>
+                                            <p className="text-green-100 text-sm mb-6">Programa premium para {roiForm.hectareas} ha. de {roiForm.cultivo}.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* BOTÓN FLOTANTE */}
+                    <button onClick={() => setActiveModal('clinica')} className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 hover:scale-110 transition-all z-40 flex items-center group border-4 border-white">
+                        <div className="hidden group-hover:flex flex-col pr-3 text-right">
+                            <span className="font-black whitespace-nowrap leading-none">Clínica 24/7</span>
+                        </div>
+                        <i className="fa-solid fa-robot text-2xl"></i>
+                    </button>
+
+                    {/* FOOTER */}
+                    <footer className="bg-gray-900 text-gray-400 py-12 text-sm text-center md:text-left">
+                        <div className="max-w-7xl mx-auto px-4 grid md:grid-cols-3 gap-8">
+                            <div>
+                                <h3 className="text-white font-bold text-xl mb-4"><i className="fa-solid fa-seedling text-green-500 mr-2"></i> PERÚ FÉRTIL</h3>
+                                <p>Calidad en tu campo. Proveedores de agroquímicos e insumos de nutrición.</p>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold mb-4">Herramientas</h4>
+                                <ul>
+                                    <li className="mb-2"><button onClick={() => setActiveModal('roi')} className="hover:text-green-400">Calculadora</button></li>
+                                    <li><button onClick={() => setActiveModal('clinica')} className="hover:text-green-400">Clínica Bot</button></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p>© 2026 PERÚ FÉRTIL E.I.R.L. Todos los derechos reservados.</p>
+                            </div>
+                        </div>
+                    </footer>
                 </div>
-              </div>
-            </div>
-            
-            {/* LADO DERECHO: BOTONES DE ACCESO RÁPIDO (HERRAMIENTAS EN LA PARTE SUPERIOR) */}
-            <div className="hidden lg:flex items-center space-x-4">
-              <button 
-                onClick={() => setActiveModal('roi')}
-                className="text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 px-5 py-2.5 rounded-full font-bold transition flex items-center shadow-sm"
-              >
-                <Calculator className="w-5 h-5 mr-2" />
-                Calculadora ROI
-              </button>
-              <button 
-                onClick={() => setActiveModal('clinica')}
-                className="bg-green-600 text-white px-6 py-2.5 rounded-full font-bold hover:bg-green-700 transition flex items-center shadow-lg hover:shadow-green-500/30"
-              >
-                <Bot className="w-5 h-5 mr-2" />
-                Clínica 24/7 (Bot)
-              </button>
-            </div>
-          </div>
-        </div>
+            );
+        }
 
-        {/* Menú Desplegable Lateral/Superior */}
-        {isMenuOpen && (
-          <div className="bg-white border-t border-gray-100 px-4 py-4 space-y-3 shadow-xl absolute w-full lg:w-80 left-0 z-50 rounded-b-2xl border-r">
-            <a href="#catalogo" onClick={() => setIsMenuOpen(false)} className="block text-gray-700 font-bold text-lg py-3 border-b border-gray-50 hover:text-green-600 flex items-center">
-              <Leaf className="w-5 h-5 mr-3" /> Catálogo de Productos
-            </a>
-            <button 
-              onClick={() => {setActiveModal('roi'); setIsMenuOpen(false);}} 
-              className="w-full text-left text-gray-600 font-bold text-lg py-3 border-b border-gray-50 hover:text-green-600 flex items-center"
-            >
-              <Calculator className="w-5 h-5 mr-3" /> Calculadora de Ganancias
-            </button>
-            <button 
-              onClick={() => {setActiveModal('clinica'); setIsMenuOpen(false);}} 
-              className="w-full text-left text-gray-600 font-bold text-lg py-3 border-b border-gray-50 hover:text-green-600 flex items-center"
-            >
-              <Bot className="w-5 h-5 mr-3" /> Clínica 24/7 (Bot WhatsApp)
-            </button>
-          </div>
-        )}
-      </nav>
-
-      {/* Geolocalización Top Bar */}
-      <div className="bg-green-900 text-green-50 text-sm py-2 px-4 text-center flex justify-center items-center gap-2 relative z-40">
-        <MapPin className="w-4 h-4" />
-        <span className="hidden sm:inline">Viendo soluciones para:</span>
-        <select 
-          value={region} 
-          onChange={(e) => setRegion(e.target.value)}
-          className="bg-green-800 text-white border border-green-700 rounded text-sm px-2 py-1 focus:ring-0 cursor-pointer outline-none"
-        >
-          <option value="Nacional">Todo el Perú</option>
-          <option value="Piura">Piura (Norte)</option>
-          <option value="Ica">Ica (Sur)</option>
-          <option value="Junín">Junín (Centro)</option>
-        </select>
-      </div>
-
-      {/* =========================================
-          CARRUSEL DE IMÁGENES (HERO SECTION)
-      ========================================= */}
-      <section className="relative bg-gray-900 overflow-hidden h-[500px] md:h-[600px] flex items-center group">
-        
-        {/* Slides */}
-        {slides.map((slide, index) => (
-          <div 
-            key={index} 
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
-          >
-            <img 
-              src={slide.imagen} 
-              alt={slide.title} 
-              className="w-full h-full object-cover opacity-50"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-green-950/95 to-green-900/40"></div>
-            
-            {/* Contenido del Slide */}
-            <div className="absolute inset-0 flex items-center justify-center lg:justify-start">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                <div className="max-w-2xl transform transition-all duration-700 translate-y-0 opacity-100">
-                  <span className="inline-block py-1.5 px-4 rounded-full bg-green-500/20 border border-green-400 text-green-300 text-xs sm:text-sm font-bold mb-4 tracking-wide uppercase shadow-sm">
-                    {slide.badge}
-                  </span>
-                  <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-4 drop-shadow-lg">
-                    {slide.title}
-                  </h1>
-                  <p className="text-lg sm:text-xl text-gray-200 mb-8 leading-relaxed drop-shadow-md">
-                    {slide.subtitle}
-                  </p>
-                  <a href="#catalogo" className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-full text-green-900 bg-green-400 hover:bg-green-300 transition shadow-[0_0_20px_rgba(74,222,128,0.4)]">
-                    Ver Catálogo
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Controles del Carrusel (Flechas) */}
-        <button 
-          onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-green-600 text-white p-3 rounded-full backdrop-blur-sm transition opacity-0 group-hover:opacity-100"
-        >
-          <ChevronLeft className="w-8 h-8" />
-        </button>
-        <button 
-          onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-green-600 text-white p-3 rounded-full backdrop-blur-sm transition opacity-0 group-hover:opacity-100"
-        >
-          <ChevronRight className="w-8 h-8" />
-        </button>
-
-        {/* Indicadores (Puntos) */}
-        <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center space-x-3">
-          {slides.map((_, index) => (
-            <button 
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-green-400 scale-125' : 'bg-white/50 hover:bg-white/80'}`}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* =========================================
-          CATÁLOGO DE PRODUCTOS (PRIMER PLANO)
-      ========================================= */}
-      <section id="catalogo" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">Catálogo Oficial</h2>
-            <p className="text-xl text-gray-500 max-w-3xl mx-auto">
-              Nuestra línea completa de protección fitosanitaria y nutrición vegetal. 
-            </p>
-            <div className="w-24 h-1.5 bg-green-500 mx-auto mt-6 rounded-full"></div>
-          </div>
-
-          <div className="flex flex-col lg:flex-row justify-between items-center mb-10 gap-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-            <div className="flex overflow-x-auto w-full lg:w-auto space-x-2 pb-2 scrollbar-hide">
-              {categorias.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveTab(cat)}
-                  className={`px-6 py-3 rounded-xl font-bold whitespace-nowrap transition-all duration-300 ${
-                    activeTab === cat 
-                    ? 'bg-green-800 text-white shadow-lg' 
-                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-            <div className="relative w-full lg:w-96">
-              <input 
-                type="text" 
-                placeholder="Ej. Tobiano, Chlorfenapyr, Mildiu..." 
-                className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-shadow shadow-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Search className="absolute left-4 top-4 text-gray-400 w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {productosFiltrados.map((prod, idx) => (
-              <div key={idx} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group flex flex-col relative overflow-hidden">
-                <div className={`absolute top-0 left-0 w-full h-1.5 z-20 
-                  ${prod.categoria === 'Insecticida' ? 'bg-red-500' : 
-                    prod.categoria === 'Fungicida' ? 'bg-purple-500' :
-                    prod.categoria === 'Herbicida' ? 'bg-orange-500' :
-                    prod.categoria === 'Especialidades' ? 'bg-blue-500' :
-                    'bg-green-500'}`}>
-                </div>
-
-                <div className="relative h-56 w-full bg-gray-50 border-b border-gray-100 overflow-hidden flex items-center justify-center">
-                  <img 
-                    src={prod.imagen} 
-                    alt={`Envase de ${prod.nombre}`} 
-                    className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 left-3 right-3 flex justify-between items-start z-10">
-                    <span className={`text-[10px] font-black px-3 py-1.5 rounded-md uppercase tracking-wider shadow-sm backdrop-blur-md bg-white/95
-                      ${prod.categoria === 'Insecticida' ? 'text-red-700 border border-red-200' : 
-                        prod.categoria === 'Fungicida' ? 'text-purple-700 border border-purple-200' :
-                        prod.categoria === 'Herbicida' ? 'text-orange-700 border border-orange-200' :
-                        prod.categoria === 'Especialidades' ? 'text-blue-700 border border-blue-200' :
-                        'text-green-700 border border-green-200'}`}>
-                      {prod.categoria}
-                    </span>
-                    <span className="text-[11px] font-bold text-gray-700 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-md border border-gray-200 shadow-sm">
-                      {prod.dosis}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="p-6 flex flex-col flex-grow">
-                  <h3 className="text-xl font-black text-gray-900 mb-2 group-hover:text-green-700 transition-colors">
-                    {prod.nombre}
-                  </h3>
-                  <div className="flex items-start mb-4 bg-green-50/50 p-2.5 rounded-lg border border-green-100/50">
-                    <Leaf className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-gray-700 font-bold leading-tight" title={prod.ia}>
-                      {prod.ia}
-                    </p>
-                  </div>
-                  <p className="text-gray-600 text-sm mb-6 flex-grow leading-relaxed line-clamp-3">
-                    {prod.desc}
-                  </p>
-                  <button className="w-full bg-gray-900 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl transition-colors flex justify-center items-center shadow-md">
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    Cotizar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================
-          MODAL: CLÍNICA 24/7 (Oculto en Primer Plano)
-      ========================================= */}
-      {activeModal === 'clinica' && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" onClick={() => setActiveModal(null)}></div>
-          <div className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-fade-in-up max-h-[90vh]">
-            
-            <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 p-2 rounded-full transition z-20">
-              <X className="w-6 h-6" />
-            </button>
-
-            <div className="w-full md:w-1/2 bg-gray-900 p-10 text-white flex flex-col justify-center relative overflow-hidden border-r-8 border-green-500">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-green-600 rounded-full blur-3xl opacity-20 transform translate-x-1/2 -translate-y-1/2"></div>
-              <h2 className="text-3xl font-black mb-4 relative z-10">Clínica <span className="text-green-400">24/7</span> WhatsApp</h2>
-              <p className="text-gray-300 mb-6 relative z-10">Nuestro Bot Agrónomo te dará la receta exacta al instante, sea la hora que sea.</p>
-              <ul className="space-y-4 mb-8 relative z-10">
-                <li className="flex items-center text-sm"><Clock className="w-5 h-5 text-green-400 mr-3" /> Respuestas a cualquier hora.</li>
-                <li className="flex items-center text-sm"><Smartphone className="w-5 h-5 text-green-400 mr-3" /> Diagnóstico subiendo una foto.</li>
-                <li className="flex items-center text-sm"><Bot className="w-5 h-5 text-green-400 mr-3" /> Recomendación de nuestro catálogo.</li>
-              </ul>
-              <a href="#" className="inline-flex items-center justify-center px-6 py-4 font-bold rounded-xl text-green-900 bg-green-400 hover:bg-green-300 transition shadow-lg relative z-10">
-                <MessageCircle className="mr-2 w-5 h-5" /> Abrir WhatsApp Ahora
-              </a>
-            </div>
-
-            <div className="w-full md:w-1/2 bg-[#E5DDD5] p-6 flex flex-col justify-center relative overflow-y-auto">
-              <div className="absolute inset-0 opacity-5 bg-[url('https://transparenttextures.com/patterns/cubes.png')]"></div>
-              <div className="bg-white p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm text-gray-800 shadow-sm relative z-10 mb-3">
-                ¡Hola! Soy el asistente 24/7. ¿En qué te ayudo hoy?
-              </div>
-              <div className="bg-[#DCF8C6] p-3 rounded-lg rounded-tr-none self-end max-w-[85%] text-sm text-gray-800 shadow-sm relative z-10 mb-3">
-                Mi cultivo de papa tiene hojas amarillas. 📷 [Foto enviada]
-              </div>
-              <div className="bg-white p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm text-gray-800 shadow-sm relative z-10">
-                Analizando... Parece deficiencia. Te recomiendo aplicar <strong>Inka Power 35-10-10</strong>. ¿Deseas cotizar?
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================
-          MODAL: CALCULADORA ROI (Oculto en Primer Plano)
-      ========================================= */}
-      {activeModal === 'roi' && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" onClick={() => setActiveModal(null)}></div>
-          <div className="relative bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-fade-in-up max-h-[90vh] overflow-y-auto">
-            
-            <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 p-2 rounded-full transition z-20">
-              <X className="w-6 h-6" />
-            </button>
-
-            <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
-              <h2 className="text-3xl font-black text-green-900 mb-2">Calculadora de Ganancias</h2>
-              <p className="text-gray-500 mb-8">Descubre cuántos soles más vas a sacar por cada sol invertido.</p>
-              
-              <form onSubmit={calculateROI} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Mi cultivo principal:</label>
-                  <select 
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none"
-                    value={roiForm.cultivo} onChange={(e) => setRoiForm({...roiForm, cultivo: e.target.value})}
-                  >
-                    <option>Papa</option><option>Arroz</option><option>Maíz</option><option>Café</option><option>Uva</option><option>Palta</option>
-                  </select>
-                </div>
-                <div className="flex gap-4">
-                  <div className="w-1/2">
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Hectáreas:</label>
-                    <input type="number" min="0.5" step="0.5" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none" value={roiForm.hectareas} onChange={(e) => setRoiForm({...roiForm, hectareas: Number(e.target.value)})} />
-                  </div>
-                  <div className="w-1/2">
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Inversión (S/):</label>
-                    <input type="number" min="100" step="100" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none" value={roiForm.inversion} onChange={(e) => setRoiForm({...roiForm, inversion: Number(e.target.value)})} />
-                  </div>
-                </div>
-                <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition flex justify-center items-center mt-2">
-                  <Calculator className="mr-3 w-5 h-5" /> Calcular mi Ganancia
-                </button>
-              </form>
-            </div>
-
-            <div className="w-full md:w-1/2 bg-green-900 p-8 md:p-12 text-white flex flex-col justify-center relative">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-green-800 rounded-full opacity-50 blur-2xl -mt-10 -mr-10"></div>
-              {roiResult === null ? (
-                <div className="text-center text-green-200 z-10">
-                  <Calculator className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                  <p>Ingresa tus datos para ver la proyección real.</p>
-                </div>
-              ) : (
-                <div className="text-center animate-fade-in-up z-10">
-                  <p className="text-green-300 font-bold mb-2 uppercase tracking-widest text-xs border-b border-green-700 pb-2 inline-block">Retorno Estimado</p>
-                  <h3 className="text-5xl font-black text-white mb-3 drop-shadow-md">S/ {roiResult.toLocaleString('es-PE')}</h3>
-                  <p className="text-green-100 text-sm mb-6">Aplicando el programa premium para {roiForm.hectareas} ha. de {roiForm.cultivo}.</p>
-                  <button onClick={() => setActiveModal(null)} className="bg-white text-green-900 font-bold py-2 px-6 rounded-full hover:bg-green-50 mx-auto shadow-lg transition">
-                    Cerrar y ver Catálogo
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* FOOTER */}
-      <footer className="bg-gray-900 text-gray-400 py-16 text-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
-          <div className="col-span-1 md:col-span-2 text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start mb-6">
-              <Sprout className="h-8 w-8 text-green-500" />
-              <span className="ml-2 text-2xl font-black text-white tracking-widest">PERÚ FÉRTIL</span>
-            </div>
-            <p className="mb-4 max-w-sm mx-auto md:mx-0 text-base">Calidad en tu campo. Proveedores de agroquímicos e insumos de nutrición para maximizar la rentabilidad del agricultor peruano.</p>
-          </div>
-          <div className="text-center md:text-left">
-            <h4 className="text-white font-bold text-lg mb-6 border-b border-gray-800 pb-2">Herramientas</h4>
-            <ul className="space-y-3">
-              <li><button onClick={() => setActiveModal('roi')} className="hover:text-green-400 transition">Calculadora de Ganancias</button></li>
-              <li><button onClick={() => setActiveModal('clinica')} className="hover:text-green-400 transition">Clínica 24/7 (Bot)</button></li>
-            </ul>
-          </div>
-          <div className="text-center md:text-left">
-            <h4 className="text-white font-bold text-lg mb-6 border-b border-gray-800 pb-2">Legal</h4>
-            <ul className="space-y-3">
-              <li><a href="#" className="hover:text-green-400 transition">Política de Privacidad</a></li>
-              <li><a href="#" className="hover:text-green-400 transition">Términos y Condiciones</a></li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-gray-800 text-center">
-          <p>© 2026 PERÚ FÉRTIL E.I.R.L. Los Olivos, Lima - Perú. Todos los derechos reservados.</p>
-        </div>
-      </footer>
-    </div>
-  );
-}
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
