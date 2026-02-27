@@ -3,641 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facturación Pardos - OCR</title>
-    
-    <!-- Tesseract.js CDN (Motor OCR) -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- SheetJS (Para exportar a Excel .xlsx real) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- SweetAlert2 (Alertas) -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Tailwind CSS (Estilos) -->
+    <title>PERÚ FÉRTIL | Nutrición Agrícola y Bioestimulantes</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Iconos Phosphor -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f3f4f6; }
-        .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.3s; }
-        .drop-zone.dragover { border-color: #3b82f6; background-color: #eff6ff; }
-        
-        .excel-table th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.75rem; border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
-        .excel-table td { border: 1px solid #e2e8f0; padding: 4px 8px; font-size: 0.85rem; vertical-align: middle; background: white; }
-        .excel-table input { width: 100%; border: none; outline: none; background: transparent; padding: 4px; font-family: monospace; font-size: 0.85rem; }
-        .excel-table input:focus { background-color: #eff6ff; box-shadow: inset 0 0 0 2px #3b82f6; }
-        
-        .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
-        .status-pending { background: #e2e8f0; color: #64748b; }
-        .status-processing { background: #dbeafe; color: #2563eb; }
-        .status-done { background: #dcfce7; color: #166534; }
-        .status-error { background: #fee2e2; color: #991b1b; }
-
-        .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        .validation-error { background-color: #fee2e2 !important; }
+       .bg-agro { background-color: #2E7D32; }
+       .bg-tierra { background-color: #5D4037; }
+       .text-agro { color: #2E7D32; }
+       .btn-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        /* Imagen de fondo de campo agrícola peruano */
+       .hero-bg {
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1592982537447-6f2a6a0a382c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80') center/cover;
+        }
     </style>
 </head>
-<body class="h-screen flex flex-col">
+<body class="bg-gray-50 font-sans text-gray-800">
 
-    <!-- HEADER -->
-    <header class="bg-white shadow-sm border-b p-4 flex justify-between items-center z-10">
-        <div class="flex items-center gap-2">
-            <i class="ph ph-receipt text-3xl text-orange-600"></i>
-            <div>
-                <h1 class="text-xl font-bold text-slate-800">Facturación Pardos <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded ml-2">v2.2</span></h1>
-                <p class="text-xs text-slate-500">Sistema de extracción con Concepto y Series E</p>
+    <a href="https://wa.me/51999999999" class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl z-50 btn-hover flex items-center gap-2 transition-all">
+        <i class="fab fa-whatsapp text-3xl"></i>
+        <span class="font-bold hidden md:inline">Clínica Agrícola 24/7</span>
+    </a>
+
+    <nav class="bg-white shadow-md sticky top-0 z-40 border-b-4 border-green-700">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2 text-agro">
+                <i class="fas fa-leaf text-3xl"></i>
+                <span class="text-2xl font-extrabold tracking-tight">PERÚ FÉRTIL</span>
             </div>
+            <div class="hidden md:flex gap-6 font-bold text-gray-600">
+                <a href="#" class="hover:text-green-700 transition">Nutrición por Cultivo</a>
+                <a href="#calculadora" class="hover:text-green-700 transition">Calculadora de Cosecha</a>
+                <a href="#club" class="hover:text-green-700 transition">Club del Agricultor</a>
+            </div>
+            <button class="md:hidden text-green-700 text-2xl"><i class="fas fa-bars"></i></button>
         </div>
-        
-        <div class="flex gap-3 items-center">
-            <div class="flex flex-col items-end">
-                <label class="text-xs text-slate-500 font-semibold mb-1">URL Web App (Google Sheets)</label>
-                <input type="text" id="sheetsUrl" placeholder="Pegar URL del script aquí..." class="border rounded px-2 py-1 text-xs w-64 focus:ring-2 ring-orange-500 outline-none">
-            </div>
-            <button onclick="app.exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm flex items-center gap-2 transition shadow-sm">
-                <i class="ph ph-microsoft-excel-logo"></i> Descargar Excel
-            </button>
-            <button onclick="app.sendAllToSheets()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm flex items-center gap-2 transition shadow-sm">
-                <i class="ph ph-cloud-arrow-up"></i> Enviar a Nube
-            </button>
+    </nav>
+
+    <header class="hero-bg text-white text-center py-28 px-4">
+        <div class="max-w-4xl mx-auto">
+            <span class="bg-yellow-500 text-yellow-900 font-bold px-3 py-1 rounded-full text-sm uppercase tracking-wide">Tecnología a tu alcance</span>
+            <h1 class="text-4xl md:text-6xl font-extrabold mt-6 mb-6 leading-tight">No gastes en abono,<br> invierte en tu cosecha</h1>
+            <p class="text-xl md:text-2xl mb-10 text-gray-200">Gracias, campesino, por sembrar vida en la tierra. Te ayudamos a sacar más kilos por hectárea y proteger tus cultivos del estrés climático.</p>
+            <a href="#calculadora" class="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-10 rounded-full text-lg transition duration-300 shadow-lg btn-hover inline-block">Proyectar mis ganancias</a>
         </div>
     </header>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 flex overflow-hidden">
-        
-        <!-- SIDEBAR (Upload & Preview) -->
-        <aside class="w-80 bg-white border-r flex flex-col shadow-lg z-0">
-            <!-- Zona de Carga -->
-            <div class="p-4 border-b">
-                <div id="dropZone" class="drop-zone rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50">
-                    <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
-                    <i class="ph ph-upload-simple text-3xl text-slate-400 mb-2"></i>
-                    <p class="text-sm font-medium text-slate-600">Subir Facturas</p>
-                    <p class="text-xs text-slate-400 mt-1">Click o arrastrar imágenes</p>
-                </div>
-                
-                <div class="mt-4 space-y-2">
-                    <div class="flex justify-between text-xs text-slate-600 font-semibold">
-                        <span>Cola de procesamiento</span>
-                        <span id="queueCount">0/0</span>
-                    </div>
-                    <div class="w-full bg-slate-200 rounded-full h-2">
-                        <div id="globalProgress" class="bg-orange-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Opciones de Procesamiento -->
-            <div class="p-4 bg-slate-50 border-b space-y-3">
-                <h3 class="text-xs font-bold text-slate-500 uppercase">Configuración</h3>
+    <section id="calculadora" class="py-20 px-4 max-w-5xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-xl p-8 md:p-12 border-t-8 border-green-600 relative overflow-hidden">
+            <i class="fas fa-calculator absolute -right-10 -top-10 text-9xl text-green-50 opacity-50"></i>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-4 text-gray-800">Calculadora de Ganancias</h2>
+            <p class="text-center text-gray-600 mb-10">Basado en el calendario oficial de los 17 cultivos estratégicos. Descubre cuántos kilos adicionales puedes lograr con nuestro programa.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                 <div>
-                    <label class="text-xs text-slate-600 block mb-1">Modo de Lectura</label>
-                    <select id="ocrMode" class="w-full border rounded text-xs p-1.5 focus:border-orange-500 outline-none">
-                        <option value="balanced" selected>Normal (Recomendado)</option>
-                        <option value="best">Alta Precisión (Más lento)</option>
+                    <label class="block text-gray-700 font-bold mb-2">Selecciona tu cultivo principal:</label>
+                    <select id="cultivo" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:border-green-500 focus:outline-none focus:ring-0 text-lg">
+                        <option value="papa">Papa (Sierra / Costa)</option>
+                        <option value="arroz">Arroz (Costa / Selva)</option>
+                        <option value="cafe">Café de Exportación</option>
+                        <option value="palta">Palto (Hass / Fuerte)</option>
                     </select>
                 </div>
-            </div>
-
-            <!-- Preview -->
-            <div class="flex-1 overflow-auto p-4 bg-slate-100 flex flex-col items-center justify-center relative">
-                <h3 class="absolute top-2 left-2 text-xs font-bold text-slate-400 z-10">VISUALIZADOR</h3>
-                <canvas id="previewCanvas" class="max-w-full shadow-md border bg-white hidden"></canvas>
-                <img id="previewImg" class="max-w-full shadow-md border bg-white object-contain h-64 w-full" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmMmY2Ii8+PC9zdmc+" alt="Vista previa">
-                <div id="logPanel" class="w-full mt-2 p-2 bg-slate-900 text-green-400 font-mono text-[10px] h-32 overflow-y-auto rounded hidden border border-slate-700"></div>
-            </div>
-        </aside>
-
-        <!-- DATA TABLE -->
-        <div class="flex-1 flex flex-col overflow-hidden bg-white">
-            <div class="overflow-auto flex-1 p-0">
-                <table class="w-full excel-table text-left border-collapse">
-                    <thead class="sticky top-0 z-10 shadow-sm">
-                        <tr>
-                            <th class="w-10 text-center"><i class="ph ph-gear"></i></th>
-                            <th class="w-20">Estado</th>
-                            <th class="w-24">Fecha</th>
-                            <th class="w-24">RUC/DNI</th>
-                            <th class="w-32">Razón Social</th>
-                            <th class="w-32">Concepto</th> <!-- Nueva Columna -->
-                            <th class="w-20">Tipo</th>
-                            <th class="w-16">Serie</th>
-                            <th class="w-16">Número</th>
-                            <th class="w-12">Mon</th>
-                            <th class="w-20 text-right">Total</th>
-                            <th class="w-20 text-right text-slate-400">Subtotal</th>
-                            <th class="w-20 text-right text-slate-400">IGV</th>
-                            <th class="w-24">Archivo</th>
-                            <th class="w-32">Observaciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dataTableBody">
-                        <!-- Filas -->
-                    </tbody>
-                </table>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">¿Cuántas hectáreas vas a sembrar?</label>
+                    <input type="number" id="hectareas" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:border-green-500 focus:outline-none focus:ring-0 text-lg" placeholder="Ej. 3">
+                </div>
             </div>
             
-            <!-- Footer -->
-            <div class="h-10 border-t bg-slate-50 flex items-center px-4 justify-between text-xs text-slate-600 font-medium">
-                <span id="rowCount">0 Documentos</span>
-                <div class="flex gap-4">
-                    <span class="text-lg">Total Acumulado: <strong id="sumTotal" class="text-orange-600">0.00</strong></span>
+            <button onclick="calcularROI()" class="w-full bg-agro hover:bg-green-800 text-white font-extrabold py-4 rounded-xl mt-8 transition text-xl shadow-md btn-hover relative z-10">Calcular Mi Cosecha</button>
+            
+            <div id="resultado" class="hidden mt-8 p-6 bg-green-50 rounded-xl text-center border-2 border-green-200 relative z-10">
+                </div>
+        </div>
+    </section>
+
+    <section id="club" class="bg-gray-100 py-20 px-4 border-t border-gray-200">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-4 text-gray-800">Recompensas para el Agroempresario</h2>
+            <p class="text-center text-gray-600 mb-12 max-w-2xl mx-auto">Tu preferencia tiene premio. Únete a nuestra comunidad y haz que cada saco de fertilizante te devuelva valor.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-2xl shadow-lg text-center border-b-4 border-blue-500 btn-hover transition">
+                    <div class="bg-blue-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-camera-retro text-4xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3 text-gray-800">El Cultivo del Mes</h3>
+                    <p class="text-gray-600 mb-6 line-clamp-3">Sube una foto de los resultados en tu chacra. La imagen con más votos gana un kit de bioestimulantes completo.</p>
+                    <button class="w-full text-blue-600 font-bold border-2 border-blue-500 px-6 py-3 rounded-xl hover:bg-blue-50 transition">Subir mi foto</button>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-xl text-center border-b-4 border-green-600 transform md:-translate-y-6 relative">
+                    <div class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">NUEVO</div>
+                    <div class="bg-green-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-medal text-4xl text-agro"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3 text-gray-800">Club del Agricultor</h3>
+                    <p class="text-gray-600 mb-6">Escanea el código QR dentro de tus envases PERÚ FÉRTIL, acumula 'AgroPuntos' y canjéalos por descuentos.</p>
+                    <button class="w-full bg-agro text-white font-bold px-6 py-3 rounded-xl hover:bg-green-800 transition">Ingresar a Mi Billetera</button>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-lg text-center border-b-4 border-yellow-500 btn-hover transition">
+                    <div class="bg-yellow-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-gift text-4xl text-yellow-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3 text-gray-800">La Cosecha Ganadora</h3>
+                    <p class="text-gray-600 mb-6">Registra tu número de boleta y gira la ruleta virtual. ¡Tenemos mochilas fumigadoras y sacos gratis todos los meses!</p>
+                    <button class="w-full text-yellow-700 font-bold border-2 border-yellow-500 px-6 py-3 rounded-xl hover:bg-yellow-50 transition">Girar Ruleta Ahora</button>
                 </div>
             </div>
         </div>
-    </main>
+    </section>
+
+    <footer class="bg-tierra text-white py-12 text-center px-4">
+        <div class="max-w-4xl mx-auto">
+            <i class="fas fa-seedling text-4xl mb-4 text-green-400"></i>
+            <p class="text-2xl font-serif italic mb-6">"El campo florece con tus manos trabajadoras"</p>
+            <div class="flex justify-center gap-6 mb-8">
+                <a href="#" class="text-gray-300 hover:text-white text-2xl"><i class="fab fa-facebook"></i></a>
+                <a href="#" class="text-gray-300 hover:text-white text-2xl"><i class="fab fa-youtube"></i></a>
+                <a href="#" class="text-gray-300 hover:text-white text-2xl"><i class="fab fa-tiktok"></i></a>
+            </div>
+            <p class="text-sm text-gray-400">© 2026 PERÚ FÉRTIL. Soluciones Agrícolas de Alta Tecnología.<br>Cumplimos estrictamente con la Ley de Protección de Datos Personales N° 29733.</p>
+        </div>
+    </footer>
 
     <script>
-        const app = {
-            version: '2.2',
-            state: {
-                files: [],
-                isProcessing: false,
-                queueIndex: 0
-            },
+        function calcularROI() {
+            const hectareas = parseFloat(document.getElementById('hectareas').value);
+            const cultivo = document.getElementById('cultivo').value;
+            const divResultado = document.getElementById('resultado');
             
-            init: () => {
-                console.log(`Iniciando Facturación Pardos v${app.version}`);
-                const dropZone = document.getElementById('dropZone');
-                const fileInput = document.getElementById('fileInput');
+            if(!hectareas |
 
-                dropZone.addEventListener('click', () => fileInput.click());
-                fileInput.addEventListener('change', (e) => app.handleFiles(e.target.files));
-
-                dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-                dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-                dropZone.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    dropZone.classList.remove('dragover');
-                    app.handleFiles(e.dataTransfer.files);
-                });
-
-                document.addEventListener('paste', (e) => {
-                    const items = e.clipboardData.items;
-                    const files = [];
-                    for (let i = 0; i < items.length; i++) {
-                        if (items[i].type.indexOf('image') !== -1) files.push(items[i].getAsFile());
-                    }
-                    if(files.length > 0) app.handleFiles(files);
-                });
-            },
-
-            handleFiles: (fileList) => {
-                const newFiles = Array.from(fileList).map(file => ({
-                    id: Math.random().toString(36).substr(2, 9),
-                    file: file,
-                    status: 'pending',
-                    progress: 0,
-                    data: {
-                        fecha_emision: '', ruc_dni: '', razon_social: '', concepto: '', tipo: '',
-                        serie: '', numero: '', moneda: 'PEN', subtotal: '', igv: '',
-                        total: '', detraccion: '', observaciones: '', ocr_text: ''
-                    },
-                    blobUrl: URL.createObjectURL(file)
-                }));
-
-                app.state.files = [...app.state.files, ...newFiles];
-                app.ui.renderTable();
-                app.processQueue();
-            },
-
-            processQueue: async () => {
-                if (app.state.isProcessing) return;
-
-                const pendingFileIndex = app.state.files.findIndex(f => f.status === 'pending');
-                if (pendingFileIndex === -1) return;
-
-                app.state.isProcessing = true;
-                const currentFileObj = app.state.files[pendingFileIndex];
-
-                currentFileObj.status = 'processing';
-                app.ui.updateRowStatus(currentFileObj.id, 'processing');
-                app.ui.showPreview(currentFileObj);
-                app.ui.updateGlobalProgress();
-
-                try {
-                    app.ui.log(`Procesando: ${currentFileObj.file.name}`);
-                    const processedImage = await app.ocr.preprocessImage(currentFileObj.file);
-                    
-                    const { text } = await app.ocr.runTesseract(processedImage);
-                    currentFileObj.data.ocr_text = text;
-
-                    app.ui.log("Extrayendo datos...");
-                    const extractedData = app.extractor.parse(text);
-                    currentFileObj.data = { ...currentFileObj.data, ...extractedData };
-                    
-                    currentFileObj.status = 'done';
-                    app.ui.log("Datos extraídos correctamente.");
-
-                } catch (error) {
-                    console.error(error);
-                    currentFileObj.status = 'error';
-                    currentFileObj.data.observaciones = "Error: " + error.message;
-                    app.ui.log("Error OCR: " + error.message);
-                }
-
-                app.ui.updateRowData(currentFileObj.id);
-                app.ui.updateRowStatus(currentFileObj.id, currentFileObj.status);
-                
-                app.state.isProcessing = false;
-                app.ui.updateGlobalProgress();
-                app.processQueue();
-            },
-
-            ocr: {
-                preprocessImage: (file) => {
-                    return new Promise((resolve, reject) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            const mode = document.getElementById('ocrMode').value;
-
-                            // Redimensionar inteligente (Max 2000px es suficiente para Tesseract)
-                            const MAX_DIM = 2000;
-                            let w = img.width, h = img.height;
-                            if (w > MAX_DIM || h > MAX_DIM) {
-                                const ratio = Math.min(MAX_DIM / w, MAX_DIM / h);
-                                w = Math.round(w * ratio);
-                                h = Math.round(h * ratio);
-                            }
-
-                            canvas.width = w;
-                            canvas.height = h;
-                            
-                            // Fondo blanco para imágenes transparentes (PNG)
-                            ctx.fillStyle = "#FFFFFF";
-                            ctx.fillRect(0,0,w,h);
-                            ctx.drawImage(img, 0, 0, w, h);
-
-                            // Procesamiento de imagen
-                            const imageData = ctx.getImageData(0, 0, w, h);
-                            const data = imageData.data;
-                            
-                            for (let i = 0; i < data.length; i += 4) {
-                                // Convertir a escala de grises usando fórmula de luminancia
-                                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                                
-                                // Aumentar contraste (Factor 1.5)
-                                let contrast = 1.5 * (gray - 128) + 128;
-                                
-                                // Binarización suave para el modo 'best'
-                                if (mode === 'best') {
-                                    contrast = contrast > 140 ? 255 : 0;
-                                }
-
-                                data[i] = contrast;
-                                data[i + 1] = contrast;
-                                data[i + 2] = contrast;
-                            }
-                            ctx.putImageData(imageData, 0, 0);
-
-                            // Debug visual
-                            const pCanvas = document.getElementById('previewCanvas');
-                            pCanvas.width = w; pCanvas.height = h;
-                            pCanvas.getContext('2d').drawImage(canvas, 0, 0);
-                            
-                            canvas.toBlob(resolve, 'image/jpeg', 0.9);
-                        };
-                        img.onerror = reject;
-                        img.src = URL.createObjectURL(file);
-                    });
-                },
-
-                runTesseract: async (imageBlob) => {
-                    const worker = await Tesseract.createWorker('spa'); 
-                    await worker.setParameters({
-                        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyz.:,/-$ %()áéíóúÁÉÍÓÚ', // Lista blanca
-                        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-                    });
-                    const ret = await worker.recognize(imageBlob);
-                    await worker.terminate();
-                    return ret.data;
-                }
-            },
-
-            extractor: {
-                cleanPrice: (str) => {
-                    if (!str) return '';
-                    let clean = str.replace(/[^0-9.,\s]/g, '').trim();
-                    clean = clean.replace(/\s/g, '');
-
-                    if (!clean) return '';
-
-                    if (clean.includes(',') && clean.includes('.')) {
-                        if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
-                            clean = clean.replace(/\./g, '').replace(',', '.');
-                        } else {
-                            clean = clean.replace(/,/g, '');
-                        }
-                    } else if (clean.includes(',')) {
-                        if (/,\d{2}$/.test(clean)) clean = clean.replace(',', '.');
-                        else clean = clean.replace(/,/g, '');
-                    }
-                    
-                    const num = parseFloat(clean);
-                    return isNaN(num) ? '' : num.toFixed(2);
-                },
-
-                parse: (text) => {
-                    const lines = text.split('\n');
-                    const data = {};
-
-                    // 1. FECHA
-                    const dateRegex = /\b(0?[1-9]|[12][0-9]|3[01])\s*[\/\-.,|]\s*(0?[1-9]|1[0-2])\s*[\/\-.,|]\s*((?:20)\d{2})\b/;
-                    const dateMatch = text.match(dateRegex);
-                    if (dateMatch) {
-                        data.fecha_emision = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
-                    }
-
-                    // 2. MONTOS
-                    const priceRegex = /\b\d{1,3}(?:[.,\s]?\d{3})*(?:[.,]\d{2})\b/g;
-
-                    const findAmount = (keywords) => {
-                        for (let line of lines) {
-                            if (keywords.some(k => line.toUpperCase().includes(k))) {
-                                const matches = line.match(priceRegex);
-                                if (matches) return app.extractor.cleanPrice(matches[matches.length - 1]);
-                            }
-                        }
-                        return null;
-                    };
-
-                    data.total = findAmount(["TOTAL", "IMPORTE TOTAL", "A PAGAR", "NETO"]);
-                    data.igv = findAmount(["IGV", "I.G.V", "IMPUESTO"]);
-                    data.subtotal = findAmount(["SUBTOTAL", "OP. GRAVADA", "VALOR VENTA", "BASE"]);
-
-                    if (!data.total || data.total == "0.00") {
-                        const allNumbers = text.match(priceRegex);
-                        if (allNumbers) {
-                            const validNumbers = allNumbers
-                                .map(n => parseFloat(app.extractor.cleanPrice(n)))
-                                .filter(n => !isNaN(n) && n > 0 && n < 500000);
-                            if (validNumbers.length > 0) {
-                                data.total = Math.max(...validNumbers).toFixed(2);
-                            }
-                        }
-                    }
-
-                    // 3. RUC y SERIE
-                    const rucMatch = text.match(/\b(20\d{9}|10\d{9})\b/);
-                    if (rucMatch) {
-                        data.ruc_dni = rucMatch[1];
-                        data.tipo = "FACTURA";
-                    } else {
-                        const dniMatch = text.match(/\b\d{8}\b/);
-                        if(dniMatch) { data.ruc_dni = dniMatch[0]; data.tipo = "BOLETA"; }
-                    }
-
-                    // MODIFICADO: Ahora soporta series que empiezan con E (ej: E001-185) además de F y B
-                    // También intenta capturar si el OCR puso un espacio (ej: "E 001")
-                    const serieMatch = text.match(/([FBE]\s?[A-Z0-9]{2,3})\s*-\s*(\d{1,8})/);
-                    if (serieMatch) {
-                        data.serie = serieMatch[1].replace(/\s/g, ''); // Quitamos espacios internos si los hay
-                        data.numero = serieMatch[2];
-                    }
-
-                    // 4. RAZÓN SOCIAL
-                    if (data.ruc_dni) {
-                        const idx = text.indexOf(data.ruc_dni);
-                        if (idx > 20) {
-                            const preText = text.substring(0, idx).split('\n').reverse();
-                            for (let l of preText) {
-                                l = l.trim();
-                                if (l.length > 5 && !/\d/.test(l) && !l.includes(':')) {
-                                    data.razon_social = l;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    // 5. CONCEPTO (NUEVA LÓGICA)
-                    // Intentamos buscar texto relevante entre el RUC/Fecha y los totales.
-                    let startIdx = 0;
-                    let endIdx = lines.length;
-
-                    // Encontrar fin de cabecera (usando RUC o Fecha como marcador)
-                    for (let i = 0; i < lines.length; i++) {
-                        if (lines[i].includes(data.ruc_dni) || (data.fecha_emision && lines[i].includes(data.fecha_emision))) {
-                            startIdx = i + 1; // Empezar una línea después
-                        }
-                    }
-                    if(startIdx == 0) startIdx = Math.floor(lines.length * 0.25); // Fallback
-
-                    // Encontrar inicio de pie (usando Total o Subtotal)
-                    for (let i = startIdx; i < lines.length; i++) {
-                        const l = lines[i].toUpperCase();
-                        if (l.includes("TOTAL") || l.includes("SUBTOTAL") || l.includes("SON:")) {
-                            endIdx = i;
-                            break;
-                        }
-                    }
-
-                    // Filtrar líneas candidatas
-                    const candidates = lines.slice(startIdx, endIdx).filter(l => {
-                        l = l.trim();
-                        if (l.length < 5) return false; // Muy corta
-                        if (/^\d+$/.test(l.replace(/[.,\s]/g, ''))) return false; // Solo números
-                        if (l.toUpperCase().includes("CLIENTE") || l.toUpperCase().includes("DIRECCION")) return false; // Headers comunes
-                        return true;
-                    });
-
-                    // Tomar las primeras líneas válidas como concepto
-                    if(candidates.length > 0) {
-                         // A veces la primera línea es "DESCRIPCION", saltarla
-                         let first = 0;
-                         if(["DESCRIPCION", "DETALLE", "CONCEPTO"].some(k => candidates[0].toUpperCase().includes(k))) first = 1;
-                         
-                         if(candidates[first]) {
-                            data.concepto = candidates[first].substring(0, 60); // Tomar 60 caracteres max
-                            if(candidates[first+1]) data.concepto += " " + candidates[first+1].substring(0, 30);
-                         }
-                    }
-
-                    return data;
-                }
-            },
-
-            // --- EXPORTACIÓN ---
-            
-            exportToExcel: () => {
-                const rows = app.state.files.map(f => ({
-                    "Fecha Emisión": f.data.fecha_emision,
-                    "RUC/DNI": f.data.ruc_dni,
-                    "Razón Social": f.data.razon_social,
-                    "Concepto": f.data.concepto, // Nuevo campo
-                    "Tipo": f.data.tipo,
-                    "Serie": f.data.serie,
-                    "Número": f.data.numero,
-                    "Moneda": f.data.moneda,
-                    "Subtotal": parseFloat(f.data.subtotal) || 0,
-                    "IGV": parseFloat(f.data.igv) || 0,
-                    "Total": parseFloat(f.data.total) || 0,
-                    "Detracción": f.data.detraccion,
-                    "Archivo Original": f.file.name,
-                    "Observaciones": f.data.observaciones
-                }));
-
-                if (rows.length === 0) {
-                    Swal.fire("Sin datos", "No hay facturas procesadas para exportar.", "warning");
-                    return;
-                }
-
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(rows);
-                
-                // Ajustar ancho de columnas
-                const wscols = [
-                    {wch:12}, {wch:12}, {wch:25}, {wch:30}, {wch:10}, {wch:8}, {wch:10}, {wch:8}, 
-                    {wch:10}, {wch:10}, {wch:12}, {wch:10}, {wch:20}, {wch:20}
-                ];
-                ws['!cols'] = wscols;
-
-                XLSX.utils.book_append_sheet(wb, ws, "Facturas");
-                XLSX.writeFile(wb, "Facturacion_Pardos.xlsx");
-            },
-
-            sendAllToSheets: async () => {
-                const url = document.getElementById('sheetsUrl').value;
-                if (!url) {
-                    Swal.fire('Error', 'Falta la URL del Apps Script.', 'error');
-                    return;
-                }
-                
-                const rowsToSend = app.state.files.filter(f => f.status === 'done' || f.status === 'processing')
-                    .map(f => ({ ...f.data, filename: f.file.name }));
-
-                if (rowsToSend.length === 0) return;
-
-                Swal.fire({ title: 'Enviando...', didOpen: () => Swal.showLoading() });
-
-                try {
-                    await fetch(url, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(rowsToSend)
-                    });
-                    Swal.fire('Enviado', 'Datos enviados a Google Sheets.', 'success');
-                } catch (e) {
-                    Swal.fire('Error', 'Falló el envío: ' + e.message, 'error');
-                }
-            },
-
-            // --- UI ---
-            ui: {
-                log: (msg) => {
-                    const panel = document.getElementById('logPanel');
-                    panel.classList.remove('hidden');
-                    const line = document.createElement('div');
-                    line.textContent = `> ${msg}`;
-                    panel.appendChild(line);
-                    panel.scrollTop = panel.scrollHeight;
-                },
-
-                updateGlobalProgress: () => {
-                    const total = app.state.files.length;
-                    const done = app.state.files.filter(f => f.status === 'done' || f.status === 'error').length;
-                    document.getElementById('queueCount').innerText = `${done}/${total}`;
-                    const pct = total === 0 ? 0 : (done / total) * 100;
-                    document.getElementById('globalProgress').style.width = `${pct}%`;
-                },
-
-                showPreview: (fileObj) => {
-                    document.getElementById('previewImg').src = fileObj.blobUrl;
-                },
-
-                updateRowStatus: (id, status) => {
-                    const badge = document.querySelector(`tr[data-id="${id}"] .status-badge`);
-                    if (badge) {
-                        badge.className = `status-badge status-${status}`;
-                        badge.innerHTML = status === 'processing' ? '<div class="loader"></div>' : status;
-                    }
-                },
-
-                updateRowData: (id) => {
-                    const f = app.state.files.find(x => x.id === id);
-                    if (!f) return;
-                    const tr = document.querySelector(`tr[data-id="${id}"]`);
-                    if (!tr) return;
-
-                    const fields = ['fecha_emision', 'ruc_dni', 'razon_social', 'concepto', 'tipo', 'serie', 'numero', 'moneda', 'subtotal', 'igv', 'total', 'detraccion', 'observaciones'];
-                    fields.forEach(field => {
-                        const input = tr.querySelector(`input[name="${field}"]`);
-                        if(input) {
-                            input.value = f.data[field] || '';
-                            // Validación visual
-                            if(['fecha_emision', 'total'].includes(field) && !input.value) input.classList.add('validation-error');
-                            else input.classList.remove('validation-error');
-                        }
-                    });
-                    app.ui.calculateSum();
-                },
-                
-                calculateSum: () => {
-                    let sum = 0;
-                    app.state.files.forEach(f => {
-                         let val = parseFloat(f.data.total);
-                         if (!isNaN(val)) sum += val;
-                    });
-                    document.getElementById('sumTotal').innerText = sum.toFixed(2);
-                },
-
-                deleteRow: (id) => {
-                    app.state.files = app.state.files.filter(f => f.id !== id);
-                    app.ui.renderTable();
-                    app.ui.updateGlobalProgress();
-                    app.ui.calculateSum();
-                },
-
-                renderTable: () => {
-                    const tbody = document.getElementById('dataTableBody');
-                    tbody.innerHTML = '';
-                    app.state.files.forEach(f => {
-                        const tr = document.createElement('tr');
-                        tr.setAttribute('data-id', f.id);
-                        
-                        const i = (n, v) => `<input type="text" name="${n}" value="${v||''}" onchange="app.updateField('${f.id}','${n}',this.value)">`;
-
-                        tr.innerHTML = `
-                            <td class="text-center"><button onclick="app.ui.deleteRow('${f.id}')" class="text-red-500 hover:text-red-700"><i class="ph ph-trash"></i></button></td>
-                            <td><span class="status-badge status-${f.status}">${f.status}</span></td>
-                            <td>${i('fecha_emision', f.data.fecha_emision)}</td>
-                            <td>${i('ruc_dni', f.data.ruc_dni)}</td>
-                            <td>${i('razon_social', f.data.razon_social)}</td>
-                            <td>${i('concepto', f.data.concepto)}</td> <!-- Campo Nuevo -->
-                            <td>${i('tipo', f.data.tipo)}</td>
-                            <td>${i('serie', f.data.serie)}</td>
-                            <td>${i('numero', f.data.numero)}</td>
-                            <td>${i('moneda', f.data.moneda)}</td>
-                            <td class="bg-blue-50 font-bold text-right">${i('total', f.data.total)}</td>
-                            <td class="text-right">${i('subtotal', f.data.subtotal)}</td>
-                            <td class="text-right">${i('igv', f.data.igv)}</td>
-                            <td class="text-xs text-slate-500 truncate max-w-[100px]" title="${f.file.name}">${f.file.name}</td>
-                            <td>${i('observaciones', f.data.observaciones)}</td>
-                        `;
-                        tr.addEventListener('click', (e) => { if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') app.ui.showPreview(f); });
-                        tbody.appendChild(tr);
-                    });
-                    app.ui.calculateSum();
-                }
-            },
-            
-            updateField: (id, field, value) => {
-                const f = app.state.files.find(x => x.id === id);
-                if (f) {
-                    f.data[field] = value;
-                    app.ui.calculateSum();
-                    const input = document.querySelector(`tr[data-id="${id}"] input[name="${field}"]`);
-                    if(input && value) input.classList.remove('validation-error');
-                }
+| hectareas <= 0) {
+                divResultado.innerHTML = `<span class="text-red-600">Por favor, ingresa un número válido de hectáreas.</span>`;
+                divResultado.classList.remove('hidden');
+                return;
             }
-        };
 
-        document.addEventListener('DOMContentLoaded', app.init);
+            let extraKilos = 0;
+            let rentabilidad = 0;
+            let cultivoNombre = "";
+
+            // Lógica de proyección básica por cultivo
+            switch(cultivo) {
+                case 'papa':
+                    extraKilos = hectareas * 4500; // Proyección de 4.5 tn extras por ha
+                    rentabilidad = extraKilos * 1.10; // Precio aprox en chacra
+                    cultivoNombre = "Papa";
+                    break;
+                case 'arroz':
+                    extraKilos = hectareas * 2200; 
+                    rentabilidad = extraKilos * 1.35; 
+                    cultivoNombre = "Arroz";
+                    break;
+                case 'cafe':
+                    extraKilos = hectareas * 850; 
+                    rentabilidad = extraKilos * 8.50; 
+                    cultivoNombre = "Café";
+                    break;
+                case 'palta':
+                    extraKilos = hectareas * 3000; 
+                    rentabilidad = extraKilos * 4.50; 
+                    cultivoNombre = "Palta";
+                    break;
+            }
+
+            divResultado.innerHTML = `
+                <h4 class="text-2xl font-bold text-green-800 mb-2">¡Tu potencial con PERÚ FÉRTIL!</h4>
+                <p class="text-lg text-gray-700">Con un manejo nutricional adecuado en tus ${hectareas} hectáreas de ${cultivoNombre}, podrías obtener hasta:</p>
+                <p class="text-4xl font-extrabold text-agro my-4">+ ${extraKilos.toLocaleString('es-PE')} Kg extra</p>
+                <p class="text-md text-gray-600 mb-4">Lo que representa un ingreso adicional estimado de <strong class="text-green-700">S/ ${rentabilidad.toLocaleString('es-PE')}</strong>.</p>
+                <a href="https://wa.me/51999999999" class="inline-block mt-2 text-white bg-green-600 font-bold py-2 px-6 rounded-lg hover:bg-green-500">Recibir plan exacto por WhatsApp</a>
+            `;
+            divResultado.classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
