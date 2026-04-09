@@ -337,16 +337,16 @@
                     <p class="text-muted" style="font-size:0.85rem">Multiplicador por cada $1 apostado.</p>
                     <div class="grid-2">
                         <div class="form-group">
-                            <label>Pago Sitio 6 y 8</label>
-                            <input type="number" id="cfg-pay68" value="1.16" step="0.01">
+                            <label>Pago Sitio 6 y 8 <span class="text-accent">(Stake: 7 a 6)</span></label>
+                            <input type="number" id="cfg-pay68" value="1.1667" step="0.0001">
                         </div>
                         <div class="form-group">
-                            <label>Pago Sitio 5 y 9</label>
-                            <input type="number" id="cfg-pay59" value="1.4" step="0.1">
+                            <label>Pago Sitio 5 y 9 <span class="text-accent">(Stake: 7 a 5)</span></label>
+                            <input type="number" id="cfg-pay59" value="1.4" step="0.01">
                         </div>
                         <div class="form-group">
-                            <label>Pago Sitio 4 y 10</label>
-                            <input type="number" id="cfg-pay410" value="1.8" step="0.1">
+                            <label>Pago Sitio 4 y 10 <span class="text-accent">(Stake: 9 a 5)</span></label>
+                            <input type="number" id="cfg-pay410" value="1.8" step="0.01">
                         </div>
                         <div class="form-group">
                             <label>Pago Field 2 y 12</label>
@@ -458,15 +458,16 @@
                             <tr>
                                 <th>#</th>
                                 <th>Tirada</th>
-                                <th>Apuesta Total</th>
+                                <th>Riesgo en Mesa</th>
                                 <th>Resultado</th>
+                                <th>Neto (Gan/Per)</th>
                                 <th>Saldo Antes</th>
                                 <th>Saldo Después</th>
                                 <th>Observación</th>
                             </tr>
                         </thead>
                         <tbody id="detail-table-body">
-                            <tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">Sin datos.</td></tr>
+                            <tr><td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-muted);">Sin datos. Corre una simulación primero.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -559,7 +560,7 @@
         // --- DEFAULTS ---
         const config = {
             bankroll: 200, baseBet: 2.5, targetProfit: 100, stopLoss: 50, useLimits: false, maxBetLimit: 15000,
-            payouts: { place68: 1.16, place59: 1.4, place410: 1.8, field2: 2, field12: 2, any7: 4, pass: 1, dontpass: 1 }
+            payouts: { place68: 1.1667, place59: 1.4, place410: 1.8, field2: 2, field12: 2, any7: 4, pass: 1, dontpass: 1 }
         };
 
         const BASE_CHIPS = [2.5, 5, 10, 20, 40, 50, 100];
@@ -1165,7 +1166,8 @@
                 logs.push({
                     rollNum: i + 1, dice: roll, bet: result.stateChange !== 'none' ? totalBetAmount : 0,
                     resultType: result.stateChange, balanceBefore: balanceBefore.toFixed(2), balanceAfter: bankroll.toFixed(2),
-                    note: result.note + logNoteAdd + (totalBetAmount === config.maxBetLimit ? ' [MAX BET]' : '')
+                    note: result.note + logNoteAdd + (totalBetAmount === config.maxBetLimit ? ' [MAX BET]' : ''),
+                    netChange: netChange
                 });
             }
 
@@ -1295,11 +1297,18 @@
             const tbody = document.getElementById('detail-table-body');
             tbody.innerHTML = '';
             r.logs.forEach(log => {
-                let resClass = '', resText = '-';
-                if(log.resultType === 'win') { resClass = 'text-success'; resText = 'Gana'; }
-                else if(log.resultType === 'loss') { resClass = 'text-danger'; resText = 'Pierde'; }
-                else if(log.resultType === 'push') { resClass = 'text-warning'; resText = 'Empate'; }
-                tbody.innerHTML += `<tr><td>${log.rollNum}</td><td style="font-weight:bold; font-size:1.1rem;">🎲 ${log.dice}</td><td>${log.bet > 0 ? 'S/ '+log.bet.toFixed(2) : '-'}</td><td class="${resClass} font-weight-bold">${resText}</td><td>S/ ${log.balanceBefore}</td><td>S/ ${log.balanceAfter}</td><td style="font-size:0.9rem; color:var(--text-muted);">${log.note}</td></tr>`;
+                let resClass = '', resText = '-', netHtml = '-';
+                if(log.resultType === 'win') { 
+                    resClass = 'text-success'; resText = 'Gana'; 
+                    netHtml = `<span class="text-success" style="font-weight:bold;">+S/ ${log.netChange.toFixed(2)}</span>`;
+                }
+                else if(log.resultType === 'loss') { 
+                    resClass = 'text-danger'; resText = 'Pierde'; 
+                    netHtml = `<span class="text-danger" style="font-weight:bold;">-S/ ${Math.abs(log.netChange).toFixed(2)}</span>`;
+                }
+                else if(log.resultType === 'push') { resClass = 'text-warning'; resText = 'Empate'; netHtml = 'S/ 0.00'; }
+                
+                tbody.innerHTML += `<tr><td>${log.rollNum}</td><td style="font-weight:bold; font-size:1.1rem;">🎲 ${log.dice}</td><td>${log.bet > 0 ? 'S/ '+log.bet.toFixed(2) : '-'}</td><td class="${resClass} font-weight-bold">${resText}</td><td>${netHtml}</td><td>S/ ${log.balanceBefore}</td><td>S/ ${log.balanceAfter}</td><td style="font-size:0.9rem; color:var(--text-muted);">${log.note}</td></tr>`;
             });
         };
 
