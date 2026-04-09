@@ -1,391 +1,1264 @@
 <!DOCTYPE html>
-<html lang="es" class="scroll-smooth">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perú Fértil - Catálogo Oficial</title>
-    
-    <!-- Tailwind CSS para los estilos -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Iconos de FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- React, ReactDOM y Babel (Permite ejecutar React directamente en el HTML) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
+    <title>Craps Lab Pro | Analizador en la Nube</title>
     <style>
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        :root {
+            --bg-base: #0b0f19;
+            --bg-panel: #151e2e;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #8b5cf6;
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --warning: #f59e0b;
+            --border: #334155;
+            --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --sidebar-width: 260px;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-panel); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0;
+            z-index: 10;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-item {
+            padding: 1rem 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+        .nav-item:hover { background-color: var(--bg-card); color: var(--text-main); }
+        .nav-item.active { background-color: var(--bg-card); color: var(--primary); border-right: 3px solid var(--primary); }
+        
+        .badge { background: var(--accent); color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; margin-left: auto; }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .tab-pane { display: none; animation: fadeIn 0.3s ease; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Typography & Layout elements */
+        h1, h2, h3 { margin-bottom: 1rem; font-weight: 600; }
+        h1 { font-size: 1.8rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        p { color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+
+        /* Cards */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .card-title { font-size: 1.1rem; color: var(--text-muted); font-weight: 500; margin: 0; }
+        .stat-value { font-size: 2rem; font-weight: 700; }
+        .stat-sub { font-size: 0.9rem; margin-top: 0.5rem; }
+
+        .highlight-card { border-top: 4px solid var(--primary); }
+        .highlight-card.success { border-top-color: var(--success); }
+        .highlight-card.danger { border-top-color: var(--danger); }
+        .highlight-card.accent { border-top-color: var(--accent); }
+
+        /* Forms & Inputs */
+        .form-group { margin-bottom: 1.2rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted); }
+        input[type="number"], input[type="text"], textarea, select {
+            width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border);
+            background-color: var(--bg-base); color: var(--text-main);
+            font-family: var(--font-family); transition: border 0.2s;
+        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
+        textarea { resize: vertical; min-height: 150px; font-family: monospace; }
+        
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+            font-family: inherit; font-size: 0.95rem; justify-content: center;
+        }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-accent { background-color: var(--accent); color: white; }
+        .btn-accent:hover { filter: brightness(1.1); }
+        .btn-outline { background-color: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--bg-card); border-color: var(--text-muted); }
+        .btn-danger { background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .btn-danger:hover { background-color: var(--danger); color: white; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 1rem; }
+
+        /* Tables */
+        .table-container { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 1rem; border-bottom: 1px solid var(--border); }
+        th { background-color: rgba(0,0,0,0.2); font-weight: 600; color: var(--text-muted); position: sticky; top: 0; cursor: pointer; user-select: none; }
+        th:hover { color: var(--text-main); }
+        tbody tr:hover { background-color: rgba(255,255,255,0.03); }
+        
+        /* Utilities */
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        .text-warning { color: var(--warning); }
+        .bg-success-light { background-color: var(--success-bg); color: var(--success); padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;}
+        .bg-danger-light { background-color: var(--danger-bg); color: var(--danger); padding: 2px 8px; border-radius: 4px; font-size: 0.85rem;}
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .mt-1 { margin-top: 1rem; } .mt-2 { margin-top: 2rem; } .mb-1 { margin-bottom: 1rem; }
+
+        /* Sequence Display */
+        .sequence-display { 
+            display: flex; flex-wrap: wrap; gap: 5px; max-height: 200px; overflow-y: auto; 
+            padding: 10px; background: var(--bg-base); border-radius: 6px; border: 1px solid var(--border);
+        }
+        .dice-tag {
+            background: var(--bg-panel); border: 1px solid var(--border);
+            padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9rem;
+        }
+        .dice-tag.seven { border-color: var(--danger); color: #fca5a5; }
+
+        /* Loader */
+        #loader {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(11, 15, 25, 0.8); backdrop-filter: blur(4px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        #loader.active { opacity: 1; pointer-events: all; }
+        .spinner { width: 50px; height: 50px; border: 5px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast Notifications */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px;}
+        .toast { background: var(--bg-card); border-left: 4px solid var(--primary); padding: 15px 20px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.5); color: white; animation: slideIn 0.3s ease forwards; font-weight: 500;}
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Custom Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-card); padding: 2rem; border-radius: 8px; max-width: 450px; width: 90%; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-800">
-    
-    <!-- Aquí se inyectará la aplicación -->
-    <div id="root"></div>
+<body>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo">
+            <span class="logo-icon">🎲</span> Craps Lab Pro
+        </div>
+        <div style="padding: 0 1.5rem 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; display: flex; flex-direction: column; gap: 5px;">
+            <span>🟢 Conectado a la nube</span>
+            <span style="font-family: monospace;">Usuario: <span id="user-uid-display">Conectando...</span></span>
+        </div>
+        <div class="nav-item active" onclick="window.switchTab('input')">📝 Historial de Tiradas</div>
+        <div class="nav-item" onclick="window.switchTab('config')">⚙️ Configuración</div>
+        <div class="nav-item" onclick="window.switchTab('analysis')">📊 Análisis de Secuencia</div>
+        <div class="nav-item" onclick="window.switchTab('dashboard')" id="nav-dashboard" style="display:none;">🏆 Mejores en Sesión</div>
+        <div class="nav-item" onclick="window.switchTab('ranking')" id="nav-ranking" style="display:none;">📋 Ranking Sesión</div>
+        <div class="nav-item" onclick="window.switchTab('detail')" id="nav-detail" style="display:none;">🔍 Simulación Detallada</div>
+        
+        <div style="margin: 1rem 1.5rem; height: 1px; background: var(--border);"></div>
+        
+        <!-- NEW CLOUD TAB -->
+        <div class="nav-item" onclick="window.switchTab('global')">
+            ☁️ Historial Global <span class="badge" id="global-badge">0</span>
+        </div>
+    </nav>
 
-        function App() {
-            const [region, setRegion] = useState('Nacional');
-            const [roiForm, setRoiForm] = useState({ cultivo: 'Papa', hectareas: 1, inversion: 1000 });
-            const [roiResult, setRoiResult] = useState(null);
-            const [isMenuOpen, setIsMenuOpen] = useState(false);
-            const [activeTab, setActiveTab] = useState('Todos');
-            const [searchTerm, setSearchTerm] = useState('');
-            
-            const [currentSlide, setCurrentSlide] = useState(0);
-            const [activeModal, setActiveModal] = useState(null); 
-
-            // --- DATOS DEL CARRUSEL ---
-            const slides = [
-                {
-                    imagen: 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?q=80&w=2070&auto=format&fit=crop',
-                    badge: 'Campaña Agrícola 2026',
-                    title: 'La tecnología de los grandes fundos, en tu chacra',
-                    subtitle: 'Descubre soluciones en protección de cultivos y nutrición de alto rendimiento.'
-                },
-                {
-                    imagen: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=2069&auto=format&fit=crop',
-                    badge: 'Protección Fitosanitaria',
-                    title: 'Máximo control contra plagas y malezas',
-                    subtitle: 'Línea de insecticidas y herbicidas de acción fulminante y prolongada.'
-                },
-                {
-                    imagen: 'https://images.unsplash.com/photo-1586771107445-d3af242d55e0?q=80&w=2070&auto=format&fit=crop',
-                    badge: 'Nutrición Especializada',
-                    title: 'Asegura calibres y firmeza de exportación',
-                    subtitle: 'Bioestimulantes y fertilizantes foliares para potenciar tu cosecha.'
-                }
-            ];
-
-            useEffect(() => {
-                const timer = setInterval(() => {
-                    setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-                }, 5000); 
-                return () => clearInterval(timer);
-            }, [slides.length]);
-
-            const nextSlide = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-            const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-
-            // --- BASE DE DATOS DEL CATÁLOGO ---
-            const catalogoProductos = [
-                { nombre: 'TOBIANO®', categoria: 'Insecticida', ia: 'Chlorfenapyr 240 g/Lt', dosis: '1 Lt', desc: 'Actúa por contacto e ingestión con eficiente actividad translaminar. Controla trips, mosca blanca y cogollero.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Tobiano]' },
-                { nombre: 'ABIGEO®', categoria: 'Insecticida', ia: 'Chlorantraniliprole 100 g/L + Thiamethoxam 200 g/L', dosis: '1 Lt - 250 ml', desc: 'Mezcla moderna de dos modos de acción. Controla gusano cogollero en maíz, sogata y mosquilla en arroz.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Abigeo]' },
-                { nombre: 'CYPERZHIÑA®', categoria: 'Insecticida', ia: 'Cypermethrin 250 g/L', dosis: '1 Lt - 250 ml', desc: 'Acción por contacto e ingestión. Provoca parálisis y muerte inmediata de orugas, mosca blanca y pulgones.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Cyperzhiña]' },
-                { nombre: 'FRY-DA®', categoria: 'Insecticida', ia: 'Fipronil 400 g/kg + Imidacloprid 400 g/kg', dosis: '100 gr', desc: 'Acción por contacto e ingestión con prolongado efecto residual para insectos chupadores.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Fry-Da]' },
-                { nombre: 'FELIÑHA®', categoria: 'Fungicida', ia: 'Azoxystrobin 200 g/L + Difenoconazole 125 g/L', dosis: '1 Lt - 250 ml', desc: 'Acción preventiva y curativa con efecto sistémico. Especialmente indicado para el control de Moniliasis.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Feliñha]' },
-                { nombre: 'X-PLENDOR®', categoria: 'Fungicida', ia: 'Chlorothalonil 450 g/L + Dimethomorph 90 g/L', dosis: '1 Lt - 250 ml', desc: 'Sistémico y de contacto. Controla hielo o rancha, alternaria, mildiu y botrytis.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+X-Plendor]' },
-                { nombre: 'VA-KUNELO®', categoria: 'Fungicida', ia: 'Azoxystrobin 500 g/kg', dosis: '100 gr', desc: 'Sistémico de amplio espectro. Inhibe la germinación de esporas (Botrytis, Mildiu, Roya, Antracnosis).', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Va-Kunelo]' },
-                { nombre: 'KAMEX®', categoria: 'Herbicida', ia: 'Ametryn 500 g/L', dosis: '1 Lt', desc: 'Sistémico de amplio espectro que inhibe la fotosíntesis. Controla malezas de hoja ancha.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Kamex]' },
-                { nombre: 'BATAN 480®', categoria: 'Herbicida', ia: 'Glyphosate Sal isopropilamina 480 g/L', dosis: '1 Lt - 20 Lt', desc: 'Eficaz en control de malezas anuales y perennes. Elimina la maleza desde la raíz.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Batan+480]' },
-                { nombre: 'INKA POWER 35-10-10®', categoria: 'Nutrición', ia: 'N 35% + P 10% + K 10% + Fitohormonas', dosis: '1 Lt', desc: 'Alto contenido de nitrógeno y microelementos para el arranque y desarrollo vegetativo inicial.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Inka+Power]' },
-                { nombre: 'LATIN FOL POTASIO®', categoria: 'Nutrición', ia: 'K2O 48% + Algas Marinas 20%', dosis: '1 Lt', desc: 'Mejora fructificación y maduración. Aumenta tamaño, color y firmeza de los frutos.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Latin+Fol]' },
-                { nombre: 'XTRA BIOL K50®', categoria: 'Nutrición', ia: 'K2O 50% + Hormonas 5%', dosis: '1 Lt', desc: 'Fertilizante órgano-mineral que impulsa la floración, cuaje y desarrollo de frutos.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Xtra+Biol]' },
-                { nombre: 'GOMAFOL ULTRA MAX®', categoria: 'Especialidades', ia: 'Nonifenol poliglicol éter 200 g/L', dosis: '1 Lt - 250 ml', desc: 'Adherente viscoso. Mejora cobertura, adherencia y absorción de los agroquímicos en las hojas.', imagen: 'https://placehold.co/400x400/f8fafc/064e3b?text=[Imagen+de+Gomafol]' }
-            ];
-
-            const categorias = ['Todos', 'Insecticida', 'Fungicida', 'Herbicida', 'Nutrición', 'Especialidades'];
-
-            const productosFiltrados = catalogoProductos.filter(prod => {
-                const coincideCategoria = activeTab === 'Todos' || prod.categoria === activeTab;
-                const coincideBusqueda = prod.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || prod.ia.toLowerCase().includes(searchTerm.toLowerCase());
-                return coincideCategoria && coincideBusqueda;
-            });
-
-            const calculateROI = (e) => {
-                e.preventDefault();
-                const multipliers = { 'Papa': 3.5, 'Arroz': 2.8, 'Maíz': 2.5, 'Café': 4.2, 'Uva': 5.5, 'Palta': 4.8 };
-                const factor = multipliers[roiForm.cultivo] || 3;
-                const gananciaEstimada = roiForm.inversion * factor * roiForm.hectareas;
-                setRoiResult(gananciaEstimada);
-            };
-
-            return (
-                <div className="min-h-screen">
-                    {/* NAVBAR */}
-                    <nav className="bg-white shadow-md sticky top-0 z-50">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex justify-between items-center h-24">
-                                <div className="flex items-center">
-                                    <button 
-                                        onClick={() => setIsMenuOpen(!isMenuOpen)} 
-                                        className="text-gray-600 p-2 mr-4 hover:bg-gray-100 rounded-lg transition"
-                                    >
-                                        <i className={`fa-solid ${isMenuOpen ? 'fa-xmark' : 'fa-bars'} text-2xl`}></i>
-                                    </button>
-
-                                    {/* LOGO PERÚ FÉRTIL */}
-                                    <div className="bg-green-800 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center shadow-inner border-2 border-green-600">
-                                        <i className="fa-solid fa-seedling text-green-300 text-xl sm:text-2xl mr-2"></i>
-                                        <div className="flex flex-col">
-                                            <span className="text-lg sm:text-xl font-black leading-none tracking-tight">PERÚ FÉRTIL</span>
-                                            <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-green-200">CALIDAD EN TU CAMPO</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="hidden lg:flex items-center space-x-4">
-                                    <button 
-                                        onClick={() => setActiveModal('roi')}
-                                        className="text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 px-5 py-2.5 rounded-full font-bold transition flex items-center shadow-sm"
-                                    >
-                                        <i className="fa-solid fa-calculator mr-2"></i> Calculadora ROI
-                                    </button>
-                                    <button 
-                                        onClick={() => setActiveModal('clinica')}
-                                        className="bg-green-600 text-white px-6 py-2.5 rounded-full font-bold hover:bg-green-700 transition flex items-center shadow-lg hover:shadow-green-500/30"
-                                    >
-                                        <i className="fa-solid fa-robot mr-2"></i> Clínica 24/7 (Bot)
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Menú Móvil */}
-                        {isMenuOpen && (
-                            <div className="bg-white border-t border-gray-100 px-4 py-4 space-y-3 shadow-xl absolute w-full lg:w-80 left-0 z-50 rounded-b-2xl border-r">
-                                <a href="#catalogo" onClick={() => setIsMenuOpen(false)} className="block text-gray-700 font-bold text-lg py-3 border-b border-gray-50 hover:text-green-600">
-                                    <i className="fa-solid fa-leaf mr-3"></i> Catálogo de Productos
-                                </a>
-                                <button onClick={() => {setActiveModal('roi'); setIsMenuOpen(false);}} className="w-full text-left text-gray-600 font-bold text-lg py-3 border-b border-gray-50 hover:text-green-600">
-                                    <i className="fa-solid fa-calculator mr-3"></i> Calculadora de Ganancias
-                                </button>
-                                <button onClick={() => {setActiveModal('clinica'); setIsMenuOpen(false);}} className="w-full text-left text-gray-600 font-bold text-lg py-3 border-b border-gray-50 hover:text-green-600">
-                                    <i className="fa-solid fa-robot mr-3"></i> Clínica 24/7 (Bot WhatsApp)
-                                </button>
-                            </div>
-                        )}
-                    </nav>
-
-                    <div className="bg-green-900 text-green-50 text-sm py-2 px-4 text-center flex justify-center items-center gap-2 relative z-40">
-                        <i className="fa-solid fa-location-dot"></i>
-                        <span className="hidden sm:inline">Viendo soluciones para:</span>
-                        <select 
-                            value={region} 
-                            onChange={(e) => setRegion(e.target.value)}
-                            className="bg-green-800 text-white border border-green-700 rounded text-sm px-2 py-1 focus:ring-0 cursor-pointer outline-none"
-                        >
-                            <option value="Nacional">Todo el Perú</option>
-                            <option value="Piura">Piura (Norte)</option>
-                            <option value="Ica">Ica (Sur)</option>
-                            <option value="Junín">Junín (Centro)</option>
-                        </select>
+    <!-- Main Content Area -->
+    <main class="main-content">
+        
+        <!-- TAB: INPUT -->
+        <div id="tab-input" class="tab-pane active">
+            <h1>Ingreso de Historial de Tiradas</h1>
+            <div class="grid-2">
+                <div class="card">
+                    <h2>Pega tus resultados aquí</h2>
+                    <p>Formatos aceptados: separados por comas, espacios o saltos de línea. El sistema limpiará caracteres inválidos.</p>
+                    <textarea id="rawInput" placeholder="Ej: 6, 5, 8, 7, 9, 10, 4, 7, 11..."></textarea>
+                    
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="window.processInput()">Analizar y Limpiar</button>
+                        <button class="btn btn-outline" onclick="window.loadExample()">Cargar Ejemplo</button>
+                        <button class="btn btn-danger" onclick="window.clearInput()">Limpiar</button>
                     </div>
-
-                    {/* CARRUSEL */}
-                    <section className="relative bg-gray-900 overflow-hidden h-[500px] md:h-[600px] flex items-center group">
-                        {slides.map((slide, index) => (
-                            <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                                <img src={slide.imagen} alt={slide.title} className="w-full h-full object-cover opacity-50" />
-                                <div className="absolute inset-0 bg-gradient-to-r from-green-950/95 to-green-900/40"></div>
-                                <div className="absolute inset-0 flex items-center justify-center lg:justify-start">
-                                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                                        <div className="max-w-2xl transform transition-all duration-700 translate-y-0 opacity-100">
-                                            <span className="inline-block py-1.5 px-4 rounded-full bg-green-500/20 border border-green-400 text-green-300 text-xs sm:text-sm font-bold mb-4 tracking-wide uppercase shadow-sm">
-                                                {slide.badge}
-                                            </span>
-                                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight mb-4 drop-shadow-lg">{slide.title}</h1>
-                                            <p className="text-lg sm:text-xl text-gray-200 mb-8 leading-relaxed drop-shadow-md">{slide.subtitle}</p>
-                                            <a href="#catalogo" className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-full text-green-900 bg-green-400 hover:bg-green-300 transition shadow-[0_0_20px_rgba(74,222,128,0.4)]">
-                                                Ver Catálogo
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-green-600 text-white p-3 rounded-full backdrop-blur-sm transition opacity-0 group-hover:opacity-100">
-                            <i className="fa-solid fa-chevron-left text-2xl"></i>
-                        </button>
-                        <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-green-600 text-white p-3 rounded-full backdrop-blur-sm transition opacity-0 group-hover:opacity-100">
-                            <i className="fa-solid fa-chevron-right text-2xl"></i>
-                        </button>
-                        <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center space-x-3">
-                            {slides.map((_, index) => (
-                                <button key={index} onClick={() => setCurrentSlide(index)} className={`w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-green-400 scale-125' : 'bg-white/50 hover:bg-white/80'}`} />
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* CATÁLOGO */}
-                    <section id="catalogo" className="py-20 bg-white">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="text-center mb-12">
-                                <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">Catálogo Oficial</h2>
-                                <p className="text-xl text-gray-500 max-w-3xl mx-auto">Nuestra línea completa de protección fitosanitaria y nutrición vegetal.</p>
-                                <div className="w-24 h-1.5 bg-green-500 mx-auto mt-6 rounded-full"></div>
-                            </div>
-
-                            <div className="flex flex-col lg:flex-row justify-between items-center mb-10 gap-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                <div className="flex overflow-x-auto w-full lg:w-auto space-x-2 pb-2 scrollbar-hide">
-                                    {categorias.map(cat => (
-                                        <button key={cat} onClick={() => setActiveTab(cat)} className={`px-6 py-3 rounded-xl font-bold whitespace-nowrap transition-all duration-300 ${activeTab === cat ? 'bg-green-800 text-white shadow-lg' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>
-                                            {cat}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="relative w-full lg:w-96">
-                                    <input type="text" placeholder="Ej. Tobiano, Chlorfenapyr, Mildiu..." className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                                    <i className="fa-solid fa-magnifying-glass absolute left-4 top-4.5 text-gray-400 mt-[2px]"></i>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                                {productosFiltrados.map((prod, idx) => (
-                                    <div key={idx} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group flex flex-col relative overflow-hidden">
-                                        <div className={`absolute top-0 left-0 w-full h-1.5 z-20 ${prod.categoria === 'Insecticida' ? 'bg-red-500' : prod.categoria === 'Fungicida' ? 'bg-purple-500' : prod.categoria === 'Herbicida' ? 'bg-orange-500' : prod.categoria === 'Especialidades' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
-                                        <div className="relative h-56 w-full bg-gray-50 border-b border-gray-100 overflow-hidden flex items-center justify-center">
-                                            <img src={prod.imagen} alt={`Envase de ${prod.nombre}`} className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500" />
-                                            <div className="absolute top-4 left-3 right-3 flex justify-between items-start z-10">
-                                                <span className={`text-[10px] font-black px-3 py-1.5 rounded-md uppercase tracking-wider shadow-sm backdrop-blur-md bg-white/95 ${prod.categoria === 'Insecticida' ? 'text-red-700 border border-red-200' : prod.categoria === 'Fungicida' ? 'text-purple-700 border border-purple-200' : prod.categoria === 'Herbicida' ? 'text-orange-700 border border-orange-200' : prod.categoria === 'Especialidades' ? 'text-blue-700 border border-blue-200' : 'text-green-700 border border-green-200'}`}>
-                                                    {prod.categoria}
-                                                </span>
-                                                <span className="text-[11px] font-bold text-gray-700 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-md border border-gray-200 shadow-sm">{prod.dosis}</span>
-                                            </div>
-                                        </div>
-                                        <div className="p-6 flex flex-col flex-grow">
-                                            <h3 className="text-xl font-black text-gray-900 mb-2 group-hover:text-green-700 transition-colors">{prod.nombre}</h3>
-                                            <div className="flex items-start mb-4 bg-green-50/50 p-2.5 rounded-lg border border-green-100/50">
-                                                <i className="fa-solid fa-leaf text-green-600 mr-2 mt-0.5"></i>
-                                                <p className="text-xs text-gray-700 font-bold leading-tight" title={prod.ia}>{prod.ia}</p>
-                                            </div>
-                                            <p className="text-gray-600 text-sm mb-6 flex-grow leading-relaxed line-clamp-3">{prod.desc}</p>
-                                            <button className="w-full bg-gray-900 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl transition-colors flex justify-center items-center shadow-md">
-                                                <i className="fa-solid fa-cart-shopping mr-2"></i> Cotizar
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* MODAL CLÍNICA */}
-                    {activeModal === 'clinica' && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-                            <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" onClick={() => setActiveModal(null)}></div>
-                            <div className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-fade-in-up max-h-[90vh]">
-                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 p-2 rounded-full transition z-20">
-                                    <i className="fa-solid fa-xmark text-xl"></i>
-                                </button>
-                                <div className="w-full md:w-1/2 bg-gray-900 p-10 text-white flex flex-col justify-center relative overflow-hidden border-r-8 border-green-500">
-                                    <h2 className="text-3xl font-black mb-4 relative z-10">Clínica <span className="text-green-400">24/7</span> WhatsApp</h2>
-                                    <p className="text-gray-300 mb-6 relative z-10">Nuestro Bot Agrónomo te dará la receta exacta al instante, sea la hora que sea.</p>
-                                    <ul className="space-y-4 mb-8 relative z-10">
-                                        <li className="flex items-center text-sm"><i className="fa-regular fa-clock text-green-400 mr-3 text-lg"></i> Respuestas a cualquier hora.</li>
-                                        <li className="flex items-center text-sm"><i className="fa-solid fa-mobile-screen text-green-400 mr-3 text-lg"></i> Diagnóstico subiendo una foto.</li>
-                                        <li className="flex items-center text-sm"><i className="fa-solid fa-robot text-green-400 mr-3 text-lg"></i> Recomendación de nuestro catálogo.</li>
-                                    </ul>
-                                    <a href="#" className="inline-flex items-center justify-center px-6 py-4 font-bold rounded-xl text-green-900 bg-green-400 hover:bg-green-300 transition shadow-lg relative z-10">
-                                        <i className="fa-brands fa-whatsapp mr-2 text-xl"></i> Abrir WhatsApp Ahora
-                                    </a>
-                                </div>
-                                <div className="w-full md:w-1/2 bg-[#E5DDD5] p-6 flex flex-col justify-center relative overflow-y-auto">
-                                    <div className="bg-white p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm text-gray-800 shadow-sm relative z-10 mb-3">
-                                        ¡Hola! Soy el asistente 24/7. ¿En qué te ayudo hoy?
-                                    </div>
-                                    <div className="bg-[#DCF8C6] p-3 rounded-lg rounded-tr-none self-end max-w-[85%] text-sm text-gray-800 shadow-sm relative z-10 mb-3">
-                                        Mi cultivo de papa tiene hojas amarillas. 📷
-                                    </div>
-                                    <div className="bg-white p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm text-gray-800 shadow-sm relative z-10">
-                                        Parece deficiencia. Te recomiendo <strong>Inka Power 35-10-10</strong>. ¿Deseas cotizar?
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* MODAL ROI */}
-                    {activeModal === 'roi' && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-                            <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" onClick={() => setActiveModal(null)}></div>
-                            <div className="relative bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-fade-in-up max-h-[90vh] overflow-y-auto">
-                                <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 p-2 rounded-full transition z-20">
-                                    <i className="fa-solid fa-xmark text-xl"></i>
-                                </button>
-                                <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
-                                    <h2 className="text-3xl font-black text-green-900 mb-2">Calculadora de Ganancias</h2>
-                                    <p className="text-gray-500 mb-8">Descubre cuántos soles más vas a sacar por cada sol invertido.</p>
-                                    <form onSubmit={calculateROI} className="space-y-5">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-1">Cultivo:</label>
-                                            <select className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none" value={roiForm.cultivo} onChange={(e) => setRoiForm({...roiForm, cultivo: e.target.value})}>
-                                                <option>Papa</option><option>Arroz</option><option>Maíz</option><option>Café</option><option>Uva</option><option>Palta</option>
-                                            </select>
-                                        </div>
-                                        <div className="flex gap-4">
-                                            <div className="w-1/2">
-                                                <label className="block text-sm font-bold text-gray-700 mb-1">Hectáreas:</label>
-                                                <input type="number" min="0.5" step="0.5" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3" value={roiForm.hectareas} onChange={(e) => setRoiForm({...roiForm, hectareas: Number(e.target.value)})} />
-                                            </div>
-                                            <div className="w-1/2">
-                                                <label className="block text-sm font-bold text-gray-700 mb-1">Inversión (S/):</label>
-                                                <input type="number" min="100" step="100" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3" value={roiForm.inversion} onChange={(e) => setRoiForm({...roiForm, inversion: Number(e.target.value)})} />
-                                            </div>
-                                        </div>
-                                        <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition">
-                                            <i className="fa-solid fa-calculator mr-2"></i> Calcular Ganancia
-                                        </button>
-                                    </form>
-                                </div>
-                                <div className="w-full md:w-1/2 bg-green-900 p-8 md:p-12 text-white flex flex-col justify-center text-center">
-                                    {roiResult === null ? (
-                                        <div className="text-green-200"><i className="fa-solid fa-calculator text-6xl mb-4 opacity-50"></i><p>Ingresa tus datos para ver la proyección.</p></div>
-                                    ) : (
-                                        <div className="animate-fade-in-up">
-                                            <p className="text-green-300 font-bold mb-2 uppercase text-xs">Retorno Estimado</p>
-                                            <h3 className="text-5xl font-black mb-3">S/ {roiResult.toLocaleString('es-PE')}</h3>
-                                            <p className="text-green-100 text-sm mb-6">Programa premium para {roiForm.hectareas} ha. de {roiForm.cultivo}.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* BOTÓN FLOTANTE */}
-                    <button onClick={() => setActiveModal('clinica')} className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 hover:scale-110 transition-all z-40 flex items-center group border-4 border-white">
-                        <div className="hidden group-hover:flex flex-col pr-3 text-right">
-                            <span className="font-black whitespace-nowrap leading-none">Clínica 24/7</span>
-                        </div>
-                        <i className="fa-solid fa-robot text-2xl"></i>
-                    </button>
-
-                    {/* FOOTER */}
-                    <footer className="bg-gray-900 text-gray-400 py-12 text-sm text-center md:text-left">
-                        <div className="max-w-7xl mx-auto px-4 grid md:grid-cols-3 gap-8">
-                            <div>
-                                <h3 className="text-white font-bold text-xl mb-4"><i className="fa-solid fa-seedling text-green-500 mr-2"></i> PERÚ FÉRTIL</h3>
-                                <p>Calidad en tu campo. Proveedores de agroquímicos e insumos de nutrición.</p>
-                            </div>
-                            <div>
-                                <h4 className="text-white font-bold mb-4">Herramientas</h4>
-                                <ul>
-                                    <li className="mb-2"><button onClick={() => setActiveModal('roi')} className="hover:text-green-400">Calculadora</button></li>
-                                    <li><button onClick={() => setActiveModal('clinica')} className="hover:text-green-400">Clínica Bot</button></li>
-                                </ul>
-                            </div>
-                            <div>
-                                <p>© 2026 PERÚ FÉRTIL E.I.R.L. Todos los derechos reservados.</p>
-                            </div>
-                        </div>
-                    </footer>
                 </div>
-            );
+
+                <div class="card">
+                    <h2>Secuencia Validada</h2>
+                    <div class="flex-between mb-1">
+                        <span class="stat-sub">Total de tiradas: <strong id="totalRolls" class="text-main">0</strong></span>
+                    </div>
+                    <div id="cleanSequenceDisplay" class="sequence-display">
+                        <span class="text-muted">Procesa los datos para ver la secuencia...</span>
+                    </div>
+                    
+                    <div class="mt-2 p-4" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <h3>🚀 Motor de Búsqueda</h3>
+                        <p style="font-size: 0.9rem;">Prueba todas las combinaciones y guarda los resultados en la nube para estadísticas históricas.</p>
+                        <button class="btn btn-accent" style="width: 100%;" onclick="window.runFullAnalysis()" id="btn-run-analysis" disabled>
+                            Buscar Mejor Estrategia Automáticamente
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NUEVA SECCIÓN DE HISTORIAL DE SECUENCIAS -->
+            <div class="card mt-2" style="border-left: 4px solid var(--accent);">
+                <h2>☁️ Mis Secuencias Guardadas en la Nube</h2>
+                <p style="font-size: 0.9rem;">Cada vez que analizas una secuencia, los números exactos se guardan aquí. Puedes volver a cargar tus jugadas pasadas con un solo clic.</p>
+                <div class="table-container" style="max-height: 250px;">
+                    <table style="width: 100%; text-align: left;">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tiradas</th>
+                                <th>Secuencia (Vista Previa)</th>
+                                <th>Mejor Estrategia en esa Sesión</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="saved-sequences-body">
+                            <tr><td colspan="5" class="text-muted" style="text-align:center;">Sincronizando secuencias con la nube...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: CONFIGURATION -->
+        <div id="tab-config" class="tab-pane">
+            <h1>Configuración del Laboratorio</h1>
+            <div class="grid-2">
+                <div class="card">
+                    <h2>Gestión de Banca</h2>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Banca Inicial (S/)</label>
+                            <input type="number" id="cfg-bankroll" value="200" min="10">
+                        </div>
+                        <div class="form-group">
+                            <label>Apuesta Base Inicial (S/)</label>
+                            <select id="cfg-basebet">
+                                <option value="2.5">S/ 2.50</option>
+                                <option value="5">S/ 5.00</option>
+                                <option value="10">S/ 10.00</option>
+                                <option value="20">S/ 20.00</option>
+                                <option value="40">S/ 40.00</option>
+                                <option value="50">S/ 50.00</option>
+                                <option value="100">S/ 100.00</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Meta de Ganancia (S/) [Stop Win]</label>
+                            <input type="number" id="cfg-target" value="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Límite de Pérdida (S/) [Stop Loss]</label>
+                            <input type="number" id="cfg-stoploss" value="50">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1; background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 6px; border: 1px dashed var(--primary);">
+                            <label style="display:flex; align-items:center; gap:10px; margin:0; cursor:pointer; color: var(--text-main); font-weight: 500;">
+                                <input type="checkbox" id="cfg-use-limits" style="width:auto; transform: scale(1.3);">
+                                Detener la simulación si se alcanza la Meta o el Límite
+                            </label>
+                            <small class="text-muted" style="margin-left: 28px; display: block; margin-top: 4px;">Si está desmarcado, simulará <strong>TODOS</strong> los números sin interrupciones (salvo quiebra).</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Límite Máximo de Apuesta (S/)</label>
+                            <input type="number" id="cfg-maxbet" value="15000" min="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Pagos y Reglas (Odds)</h2>
+                    <p class="text-muted" style="font-size:0.85rem">Multiplicador por cada $1 apostado.</p>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Pago Sitio 6 y 8</label>
+                            <input type="number" id="cfg-pay68" value="1.16" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Pago Sitio 5 y 9</label>
+                            <input type="number" id="cfg-pay59" value="1.4" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Pago Sitio 4 y 10</label>
+                            <input type="number" id="cfg-pay410" value="1.8" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Pago Field 2 y 12</label>
+                            <select id="cfg-field212">
+                                <option value="2">Doble (2x)</option>
+                                <option value="3">Triple (3x)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Pago Solo 7 (Any 7)</label>
+                            <input type="number" id="cfg-pay7" value="4">
+                        </div>
+                    </div>
+                    <button class="btn btn-outline mt-1" onclick="window.saveConfig()">Guardar Configuración en la Nube</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: ANALYSIS -->
+        <div id="tab-analysis" class="tab-pane">
+            <h1>Análisis Estadístico de la Secuencia</h1>
+            <div class="grid-3 mb-1" id="analysis-summary-cards">
+                <!-- Cards injected here -->
+            </div>
+            <div class="grid-2">
+                <div class="card">
+                    <h2>Métricas de Riesgo</h2>
+                    <table class="mt-1">
+                        <tbody id="risk-metrics-table">
+                            <!-- Injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: DASHBOARD (BEST STRATEGIES) -->
+        <div id="tab-dashboard" class="tab-pane">
+            <div class="flex-between">
+                <h1>Resultados de esta Sesión</h1>
+                <button class="btn btn-outline" onclick="window.switchTab('ranking')">Ver Ranking Completo ➔</button>
+            </div>
+            
+            <div class="grid-3" id="top-cards-container">
+                <!-- Top cards injected via JS -->
+            </div>
+        </div>
+
+        <!-- TAB: RANKING -->
+        <div id="tab-ranking" class="tab-pane">
+            <div class="flex-between">
+                <h1>Ranking Completo de la Sesión</h1>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="window.exportCSV('ranking')">📥 Exportar CSV</button>
+                </div>
+            </div>
+            
+            <div class="card mt-1">
+                <div class="table-container" style="max-height: 65vh;">
+                    <table id="ranking-table">
+                        <thead>
+                            <tr>
+                                <th onclick="window.sortRanking('name')">Estrategia ↕</th>
+                                <th onclick="window.sortRanking('type')">Tipo ↕</th>
+                                <th onclick="window.sortRanking('progression')">Progresión ↕</th>
+                                <th onclick="window.sortRanking('netProfit')">Ganancia Neta ↕</th>
+                                <th onclick="window.sortRanking('maxDrawdown')">Max Drawdown ↕</th>
+                                <th onclick="window.sortRanking('winRate')">Win Rate ↕</th>
+                                <th onclick="window.sortRanking('status')">Estado ↕</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ranking-table-body">
+                            <!-- Injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: DETAIL -->
+        <div id="tab-detail" class="tab-pane">
+            <div class="flex-between">
+                <h1 id="detail-title">Detalle de Simulación</h1>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="window.switchTab('ranking')">⬅ Volver al Ranking</button>
+                    <button class="btn btn-outline" onclick="window.exportCSV('detail')">📥 Exportar Historial</button>
+                </div>
+            </div>
+
+            <div class="card mb-1" style="border-left: 4px solid var(--primary);">
+                <h3 style="margin-bottom: 0.5rem; color: var(--primary);">📖 Cómo aplicar esta estrategia en la mesa</h3>
+                <p id="detail-description" style="margin-bottom: 0.5rem; line-height: 1.6;"></p>
+                <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px dashed var(--border); margin-top: 10px;">
+                    <p id="detail-betting-rules" class="text-muted" style="font-size: 0.95rem; margin-bottom: 0;"></p>
+                </div>
+            </div>
+
+            <div class="grid-4 mb-1" id="detail-summary-cards">
+                <!-- Summary cards injected here -->
+            </div>
+
+            <div class="card">
+                <div class="table-container" style="max-height: 55vh;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Tirada</th>
+                                <th>Apuesta Total</th>
+                                <th>Resultado</th>
+                                <th>Saldo Antes</th>
+                                <th>Saldo Después</th>
+                                <th>Observación</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-table-body">
+                            <!-- Injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW TAB: GLOBAL HISTORY -->
+        <div id="tab-global" class="tab-pane">
+            <div class="flex-between">
+                <h1>Historial y Estadísticas Globales ☁️</h1>
+                <button class="btn btn-danger" onclick="window.promptClearHistory()">🗑️ Borrar Historial en la Nube</button>
+            </div>
+            <p>Aquí se acumulan los resultados de <strong>todas las simulaciones</strong> que has realizado en la nube. Te ayuda a descubrir cuál estrategia es la más consistente y rentable a lo largo de múltiples horas de juego y diferentes secuencias de dados.</p>
+            
+            <div class="grid-3 mb-1" id="global-summary-cards">
+                <!-- injected -->
+            </div>
+            
+            <div class="card mt-1">
+                <div class="table-container" style="max-height: 55vh;">
+                    <table id="global-ranking-table">
+                        <thead>
+                            <tr>
+                                <th>Top</th>
+                                <th>Estrategia Base</th>
+                                <th class="text-success">Ganancia Neta Acumulada (S/)</th>
+                                <th>Win Rate Promedio</th>
+                                <th>Veces que fue la #1</th>
+                            </tr>
+                        </thead>
+                        <tbody id="global-ranking-body">
+                            <!-- injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Custom Modal -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3 style="color: var(--danger); margin-bottom: 10px;">¿Borrar todo el historial?</h3>
+            <p style="margin-bottom: 20px; color: var(--text-muted);">Esto eliminará permanentemente todas las simulaciones y estadísticas acumuladas en la base de datos de la nube. Esta acción no se puede deshacer.</p>
+            <div class="btn-group" style="justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="window.closeModal('confirm-modal')">Cancelar</button>
+                <button class="btn btn-danger" onclick="window.executeClearHistory()">Sí, Borrar Todo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <h2 class="mt-1" style="color:white;">Simulando Estrategias...</h2>
+        <p style="color:var(--text-muted);">Calculando y sincronizando con la nube...</p>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- MAIN FIREBASE MODULAR SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- GLOBAL VARIABLES ---
+        let app, auth, db, currentUser;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'craps-lab-pro-app';
+        
+        // Tu configuración personal de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBBe8yh9Q7U6E4K9owKPtCPjWBZ8E7-cFE",
+            authDomain: "craps-197ad.firebaseapp.com",
+            projectId: "craps-197ad",
+            storageBucket: "craps-197ad.firebasestorage.app",
+            messagingSenderId: "10940191891",
+            appId: "1:10940191891:web:bec4739038a8b933376966",
+            measurementId: "G-T5WMDFJE2G"
+        };
+
+        let rawHistory = [];
+        let validSequence = [];
+        let simulationResults = [];
+        let currentDetailedResult = null;
+        let currentSort = { column: 'netProfit', asc: false };
+        let cloudSessions = [];
+
+        // --- DEFAULTS ---
+        const config = {
+            bankroll: 200, baseBet: 2.5, targetProfit: 100, stopLoss: 50, useLimits: false, maxBetLimit: 15000,
+            payouts: { place68: 1.16, place59: 1.4, place410: 1.8, field2: 2, field12: 2, any7: 4, pass: 1, dontpass: 1 }
+        };
+
+        const BASE_CHIPS = [2.5, 5, 10, 20, 40, 50, 100];
+        
+        // --- FIREBASE INITIALIZATION ---
+        async function startApp() {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Forzar persistencia local si el navegador lo permite
+                await setPersistence(auth, browserLocalPersistence).catch(() => console.warn("Persistencia local no disponible en este entorno."));
+
+                // Authentication Protocol con Fallback
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    try {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } catch (tokenError) {
+                        console.warn("Token ignorado. Iniciando modo Anónimo...");
+                        await signInAnonymously(auth);
+                    }
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, async (user) => {
+                    currentUser = user;
+                    if(user) {
+                        document.getElementById('user-uid-display').innerText = user.uid.substring(0, 6) + '...';
+                        await loadCloudConfig();
+                        listenToGlobalHistory();
+                    } else {
+                        document.getElementById('user-uid-display').innerText = "Desconectado";
+                    }
+                });
+            } catch (err) {
+                console.error("Firebase init failed:", err);
+                window.showToast("Error conectando a la base de datos.", "error");
+            }
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        document.addEventListener("DOMContentLoaded", startApp);
+
+        // --- TOASTS & MODALS ---
+        window.showToast = function(msg, type='success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            if(type === 'error') toast.style.borderLeftColor = 'var(--danger)';
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        };
+        
+        window.openModal = (id) => document.getElementById(id).classList.add('active');
+        window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+        // --- UI NAVIGATION ---
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            const navEl = document.querySelector(`.nav-item[onclick="window.switchTab('${tabId}')"]`);
+            if(navEl) { navEl.style.display = 'flex'; navEl.classList.add('active'); }
+        };
+
+        // --- CLOUD DB OPERATIONS ---
+        async function loadCloudConfig() {
+            if(!currentUser) return;
+            try {
+                const configRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'config');
+                const configSnap = await getDoc(configRef);
+                if(configSnap.exists()) {
+                    Object.assign(config, configSnap.data());
+                    updateUIFromConfig();
+                }
+
+                const seqRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'last_sequence');
+                const seqSnap = await getDoc(seqRef);
+                if(seqSnap.exists() && seqSnap.data().sequence) {
+                    document.getElementById('rawInput').value = seqSnap.data().sequence;
+                    window.processInput(false); 
+                }
+            } catch (e) {
+                console.warn("Could not load cloud config");
+            }
+        }
+
+        window.saveConfig = async function() {
+            if(!currentUser) return;
+            config.bankroll = parseFloat(document.getElementById('cfg-bankroll').value);
+            config.baseBet = parseFloat(document.getElementById('cfg-basebet').value);
+            config.targetProfit = parseFloat(document.getElementById('cfg-target').value);
+            config.stopLoss = parseFloat(document.getElementById('cfg-stoploss').value);
+            config.useLimits = document.getElementById('cfg-use-limits').checked;
+            config.maxBetLimit = parseFloat(document.getElementById('cfg-maxbet').value);
+            config.payouts.place68 = parseFloat(document.getElementById('cfg-pay68').value);
+            config.payouts.place59 = parseFloat(document.getElementById('cfg-pay59').value);
+            config.payouts.place410 = parseFloat(document.getElementById('cfg-pay410').value);
+            config.payouts.field2 = parseFloat(document.getElementById('cfg-field212').value);
+            config.payouts.field12 = config.payouts.field2;
+            config.payouts.any7 = parseFloat(document.getElementById('cfg-pay7').value);
+            
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'config'), config);
+                window.showToast("Configuración guardada en la Nube.");
+            } catch(e) { window.showToast("Error guardando configuración.", "error"); }
+        };
+
+        function updateUIFromConfig() {
+            document.getElementById('cfg-bankroll').value = config.bankroll;
+            document.getElementById('cfg-basebet').value = config.baseBet;
+            document.getElementById('cfg-target').value = config.targetProfit;
+            document.getElementById('cfg-stoploss').value = config.stopLoss;
+            document.getElementById('cfg-use-limits').checked = config.useLimits || false;
+            document.getElementById('cfg-maxbet').value = config.maxBetLimit || 15000;
+            document.getElementById('cfg-pay68').value = config.payouts.place68;
+            document.getElementById('cfg-pay59').value = config.payouts.place59;
+            document.getElementById('cfg-pay410').value = config.payouts.place410;
+            document.getElementById('cfg-field212').value = config.payouts.field2;
+            document.getElementById('cfg-pay7').value = config.payouts.any7;
+        }
+
+        // --- HISTORY & AGGREGATION LOGIC ---
+        function listenToGlobalHistory() {
+            if(!currentUser) return;
+            const historyRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'craps_sessions');
+            
+            onSnapshot(historyRef, (snapshot) => {
+                cloudSessions = [];
+                snapshot.forEach(d => cloudSessions.push({ id: d.id, ...d.data() }));
+                
+                document.getElementById('global-badge').innerText = cloudSessions.length;
+                processGlobalHistory(cloudSessions);
+                renderSavedSequences(cloudSessions);
+            }, (err) => {
+                console.error("Error leyendo Firebase:", err);
+                window.showToast("Error leyendo la nube. Verifica Firebase Rules.", "error");
+            });
+        }
+
+        async function saveSessionToCloud(results) {
+            if(!currentUser || results.length === 0) return;
+            try {
+                const bestStrategy = results[0];
+                const sessionData = {
+                    timestamp: Date.now(),
+                    rollsCount: validSequence.length,
+                    sequence: validSequence.join(','), // <-- AHORA SE GUARDA LA SECUENCIA EXACTA
+                    bestStrategyId: bestStrategy.strategy.id,
+                    bestStrategyName: bestStrategy.strategy.name,
+                    bestStrategyProfit: bestStrategy.netProfit,
+                    strategies: results.slice(0, 50).map(r => ({ // Save top 50 strictly to save space
+                        id: r.strategy.id,
+                        name: r.strategy.name,
+                        netProfit: r.netProfit,
+                        winRate: r.winRate
+                    }))
+                };
+                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'craps_sessions'), sessionData);
+                window.showToast("Sesión y Secuencia guardadas en la Nube.");
+            } catch(e) { console.error("Error saving session", e); }
+        }
+
+        function renderSavedSequences(sessions) {
+            const tbody = document.getElementById('saved-sequences-body');
+            tbody.innerHTML = '';
+            if(sessions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-muted" style="text-align:center;">Aún no tienes secuencias guardadas. Analiza unos números para guardar tu primera sesión.</td></tr>';
+                return;
+            }
+
+            // Ordenar de la más reciente a la más antigua
+            const sorted = [...sessions].sort((a,b) => b.timestamp - a.timestamp);
+
+            sorted.forEach(s => {
+                const dateStr = new Date(s.timestamp).toLocaleString();
+                const seqPreview = s.sequence ? (s.sequence.length > 25 ? s.sequence.substring(0, 25) + '...' : s.sequence) : 'Sin datos';
+                const bestName = s.bestStrategyName || 'Desconocida';
+                const profit = s.bestStrategyProfit !== undefined ? s.bestStrategyProfit : 0;
+                const profitClass = profit >= 0 ? 'text-success' : 'text-danger';
+                const profitText = profit >= 0 ? `(+S/ ${profit.toFixed(2)})` : `(-S/ ${Math.abs(profit).toFixed(2)})`;
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${dateStr}</td>
+                        <td>${s.rollsCount || 0}</td>
+                        <td style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);" title="${s.sequence || ''}">${seqPreview}</td>
+                        <td class="${profitClass}" style="font-weight: 500;">${bestName} <br><span style="font-size:0.8rem">${profitText}</span></td>
+                        <td><button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.85rem;" onclick="window.reloadSequence('${s.id}')">🔄 Cargar</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.reloadSequence = function(sessionId) {
+            const session = cloudSessions.find(s => s.id === sessionId);
+            if(session && session.sequence) {
+                document.getElementById('rawInput').value = session.sequence;
+                window.processInput(false); // Falso para no auto-sobrescribir el registro temporal
+                window.showToast("Secuencia cargada correctamente.");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                window.showToast("Esta sesión antigua no tiene la secuencia guardada.", "error");
+            }
+        };
+
+        function processGlobalHistory(sessions) {
+            let globalAggregated = {};
+            let totalRollsAllTime = 0;
+            
+            sessions.forEach(session => {
+                totalRollsAllTime += session.rollsCount || 0;
+                session.strategies.forEach(s => {
+                    if(!globalAggregated[s.id]) {
+                        globalAggregated[s.id] = { id: s.id, name: s.name, totalNetProfit: 0, timesFirst: 0, sumWinRate: 0, count: 0 };
+                    }
+                    globalAggregated[s.id].totalNetProfit += s.netProfit;
+                    globalAggregated[s.id].sumWinRate += s.winRate;
+                    globalAggregated[s.id].count += 1;
+                    
+                    if (session.bestStrategyId === s.id) {
+                        globalAggregated[s.id].timesFirst += 1;
+                    }
+                });
+            });
+
+            const ranking = Object.values(globalAggregated).map(s => ({
+                ...s,
+                avgWinRate: s.sumWinRate / s.count
+            })).sort((a, b) => b.totalNetProfit - a.totalNetProfit);
+
+            renderGlobalHistory(ranking, sessions.length, totalRollsAllTime);
+        }
+
+        function renderGlobalHistory(ranking, sessionCount, totalRolls) {
+            const bestAllTime = ranking.length > 0 ? ranking[0] : null;
+            
+            document.getElementById('global-summary-cards').innerHTML = `
+                <div class="card">
+                    <div class="card-title">Sesiones Jugadas</div>
+                    <div class="stat-value text-main">${sessionCount}</div>
+                    <div class="stat-sub">Simulaciones guardadas</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Tiradas Analizadas</div>
+                    <div class="stat-value text-accent">${totalRolls}</div>
+                    <div class="stat-sub">Volumen total de datos</div>
+                </div>
+                <div class="card highlight-card success">
+                    <div class="card-title">👑 Mejor de Todos los Tiempos</div>
+                    <div class="stat-value text-success">${bestAllTime ? '+S/'+bestAllTime.totalNetProfit.toFixed(2) : 'N/A'}</div>
+                    <div class="stat-sub"><strong>${bestAllTime ? bestAllTime.name : 'Ninguna'}</strong></div>
+                </div>
+            `;
+
+            const tbody = document.getElementById('global-ranking-body');
+            tbody.innerHTML = '';
+            ranking.forEach((r, i) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${i+1}</td>
+                        <td style="font-weight:bold;">${r.name}</td>
+                        <td class="${r.totalNetProfit >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">
+                            ${r.totalNetProfit >= 0 ? '+' : ''}S/ ${r.totalNetProfit.toFixed(2)}
+                        </td>
+                        <td>${r.avgWinRate.toFixed(1)}%</td>
+                        <td><span class="badge" style="background: ${r.timesFirst > 0 ? 'var(--warning)' : 'var(--bg-panel)'}; color: ${r.timesFirst > 0 ? '#000' : 'var(--text-muted)'}">${r.timesFirst} veces</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.promptClearHistory = () => window.openModal('confirm-modal');
+        
+        window.executeClearHistory = async () => {
+            window.closeModal('confirm-modal');
+            if(!currentUser) return;
+            window.showToast("Borrando historial de la nube...", "warning");
+            
+            try {
+                const sessionsRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'craps_sessions');
+                const snapshot = await getDocs(sessionsRef);
+                const deletePromises = [];
+                snapshot.forEach(docSnap => {
+                    deletePromises.push(deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'craps_sessions', docSnap.id)));
+                });
+                await Promise.all(deletePromises);
+                window.showToast("Historial borrado exitosamente.", "success");
+            } catch(e) {
+                window.showToast("Error borrando el historial.", "error");
+            }
+        };
+
+        // --- INPUT & PARSING ---
+        window.loadExample = function() {
+            document.getElementById('rawInput').value = "6,8,7, 4,10,9,9,5, 7, 2,3,12,11, 6,6,6,8, 7, 5,4,8,9,10,7, 7,7, 4,5,6,8";
+            window.processInput();
+        };
+
+        window.clearInput = function() {
+            document.getElementById('rawInput').value = '';
+            validSequence = [];
+            document.getElementById('totalRolls').innerText = '0';
+            document.getElementById('cleanSequenceDisplay').innerHTML = '<span class="text-muted">Procesa los datos para ver la secuencia...</span>';
+            document.getElementById('btn-run-analysis').disabled = true;
+        };
+
+        window.processInput = async function(saveToCloud = true) {
+            const raw = document.getElementById('rawInput').value;
+            const numbers = raw.split(/[^\d]+/).filter(Boolean).map(Number);
+            validSequence = numbers.filter(n => n >= 2 && n <= 12);
+            
+            document.getElementById('totalRolls').innerText = validSequence.length;
+            const display = document.getElementById('cleanSequenceDisplay');
+            display.innerHTML = '';
+            
+            if(validSequence.length === 0) {
+                display.innerHTML = '<span class="text-danger">No se encontraron tiradas válidas (números entre 2 y 12).</span>';
+                document.getElementById('btn-run-analysis').disabled = true;
+                return;
+            }
+
+            if(saveToCloud && currentUser) {
+                setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'last_sequence'), { sequence: validSequence.join(',') });
+            }
+
+            document.getElementById('btn-run-analysis').disabled = false;
+            const renderLimit = Math.min(validSequence.length, 200);
+            for(let i=0; i<renderLimit; i++) {
+                const span = document.createElement('span');
+                span.className = `dice-tag ${validSequence[i] === 7 ? 'seven' : ''}`;
+                span.innerText = validSequence[i];
+                display.appendChild(span);
+            }
+            if(validSequence.length > 200) {
+                const more = document.createElement('span');
+                more.className = 'text-muted';
+                more.innerText = `... y ${validSequence.length - 200} más`;
+                display.appendChild(more);
+            }
+
+            updateAnalysisTab();
+        };
+
+        function updateAnalysisTab() {
+            if(validSequence.length === 0) return;
+            const counts = {2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0};
+            let sevens = 0; let fieldRolls = 0;
+            validSequence.forEach(n => {
+                counts[n]++;
+                if(n === 7) sevens++;
+                if([2,3,4,9,10,11,12].includes(n)) fieldRolls++;
+            });
+
+            document.getElementById('analysis-summary-cards').innerHTML = `
+                <div class="card highlight-card accent">
+                    <div class="card-title">Apariciones del 7</div>
+                    <div class="stat-value">${sevens}</div>
+                    <div class="stat-sub text-muted">${((sevens/validSequence.length)*100).toFixed(1)}%</div>
+                </div>
+                <div class="card highlight-card success">
+                    <div class="card-title">Tiradas Field</div>
+                    <div class="stat-value">${fieldRolls}</div>
+                    <div class="stat-sub text-muted">${((fieldRolls/validSequence.length)*100).toFixed(1)}%</div>
+                </div>
+                <div class="card highlight-card danger">
+                    <div class="card-title">Promedio de Tiradas (PSO)</div>
+                    <div class="stat-value">${sevens > 0 ? (validSequence.length / sevens).toFixed(1) : validSequence.length}</div>
+                    <div class="stat-sub text-muted">Tiradas entre cada 7</div>
+                </div>
+            `;
+
+            document.getElementById('risk-metrics-table').innerHTML = `
+                <tr><td>Racha más larga sin 7</td><td class="text-success" style="font-weight:bold;">${longestStreakWithout(7)} tiradas</td></tr>
+                <tr><td>Racha más larga de Field</td><td class="text-success" style="font-weight:bold;">${longestStreakOf([2,3,4,9,10,11,12])} tiradas</td></tr>
+                <tr><td>Racha más larga de No-Field</td><td class="text-danger" style="font-weight:bold;">${longestStreakOf([5,6,7,8])} tiradas</td></tr>
+            `;
+        }
+
+        function longestStreakWithout(num) {
+            let max = 0, current = 0;
+            for(let n of validSequence) {
+                if(n !== num) { current++; max = Math.max(max, current); } else current = 0;
+            }
+            return max;
+        }
+
+        function longestStreakOf(arr) {
+            let max = 0, current = 0;
+            for(let n of validSequence) {
+                if(arr.includes(n)) { current++; max = Math.max(max, current); } else current = 0;
+            }
+            return max;
+        }
+
+        // --- ENGINE ---
+        function generateAllStrategies() {
+            let strats = [];
+            const progressions = ['flat', 'martingale', 'fibonacci', 'dalembert', 'paroli'];
+            const getProgDesc = (prog) => {
+                const limitWarning = `<br><span class="text-warning" style="font-size:0.85rem">⚠️ Límite: S/ ${config.maxBetLimit}.</span>`;
+                if(prog === 'flat') return '<strong>Apuesta plana:</strong> Mantienes el mismo monto en cada tiro.';
+                if(prog === 'martingale') return '<strong>Martingala:</strong> Doblas al perder, regresas base al ganar.' + limitWarning;
+                if(prog === 'fibonacci') return '<strong>Fibonacci:</strong> Secuencia suave al perder, retrocedes dos al ganar.' + limitWarning;
+                if(prog === 'dalembert') return '<strong>D\'Alembert:</strong> Sumas 1 unidad al perder, restas 1 al ganar.' + limitWarning;
+                if(prog === 'paroli') return '<strong>Paroli:</strong> Doblas al ganar (Max 3). Reinicias al perder.' + limitWarning;
+                return '';
+            };
+
+            progressions.forEach(prog => {
+                strats.push({ id: `pass_${prog}`, name: `Pass Line (${prog})`, type: 'pass', progression: prog, desc: `Pass Line Clásico.<br><br>${getProgDesc(prog)}` });
+                strats.push({ id: `dontpass_${prog}`, name: `Don't Pass (${prog})`, type: 'dontpass', progression: prog, desc: `Don't Pass.<br><br>${getProgDesc(prog)}` });
+                strats.push({ id: `field_${prog}`, name: `Field (${prog})`, type: 'field', progression: prog, desc: `Caja Field (2,3,4,9,10,11,12).<br><br>${getProgDesc(prog)}` });
+            });
+
+            const placeNums = [4,5,6,8,9,10];
+            placeNums.forEach(n => {
+                progressions.forEach(prog => {
+                    strats.push({ id: `place_${n}_${prog}`, name: `Sitio al ${n} (${prog})`, type: 'place', nums: [n], progression: prog, desc: `Sitio directo al ${n}.<br><br>${getProgDesc(prog)}` });
+                });
+            });
+
+            const combos = [
+                {name: "6 y 8 (Inside)", nums: [6,8], text: "Sitio 6 y 8 simultáneos."},
+                {name: "5 y 9", nums: [5,9], text: "Sitio 5 y 9 simultáneos."},
+                {name: "Hierro Cruz", nums: [5,6,8], special: 'ironcross', text: "Iron Cross Completo (5,6,8 + Field). Cuesta 4 unidades."}
+            ];
+
+            combos.forEach(c => {
+                progressions.forEach(prog => {
+                    strats.push({ id: `combo_${c.special || c.nums.join('')}_${prog}`, name: `Combo: ${c.name} (${prog})`, type: c.special || 'place', nums: c.nums, progression: prog, desc: `${c.text} <br><br>${getProgDesc(prog)}` });
+                });
+            });
+
+            return strats;
+        }
+
+        function evaluateRoll(roll, strategyDef, context) {
+            const { type, nums } = strategyDef;
+            if(type === 'ironcross') {
+                if(roll === 5) return { stateChange: 'win', payoutMult: (config.payouts.place59 - 1) / 4, note: `Sitio 5 gana, Field pierde` };
+                if(roll === 6 || roll === 8) return { stateChange: 'win', payoutMult: (config.payouts.place68 - 1) / 4, note: `Sitio ${roll} gana, Field pierde` };
+                if([3,4,9,10,11].includes(roll)) return { stateChange: 'win', payoutMult: 1 / 4, note: `Field Win (${roll})` };
+                if(roll === 2) return { stateChange: 'win', payoutMult: config.payouts.field2 / 4, note: `Field x2 (${roll})` };
+                if(roll === 12) return { stateChange: 'win', payoutMult: config.payouts.field12 / 4, note: `Field x${config.payouts.field12} (${roll})` };
+                if(roll === 7) return { stateChange: 'loss', payoutMult: 0, note: '7 Out - Pierde todo (4x)' };
+                return { stateChange: 'none', payoutMult: 0, note: '?' }; 
+            }
+            if(type === 'place') {
+                if(nums.includes(roll)) {
+                    let mult = 1;
+                    if(roll === 6 || roll === 8) mult = config.payouts.place68;
+                    else if(roll === 5 || roll === 9) mult = config.payouts.place59;
+                    else if(roll === 4 || roll === 10) mult = config.payouts.place410;
+                    return { stateChange: 'win', payoutMult: mult, note: `Acertó ${roll}` };
+                }
+                if(roll === 7) return { stateChange: 'loss', payoutMult: 0, note: '7 Out' };
+                return { stateChange: 'none', payoutMult: 0, note: 'Esperando...' };
+            }
+            if(type === 'field') {
+                if([3,4,9,10,11].includes(roll)) return { stateChange: 'win', payoutMult: 1, note: `Field Win (${roll})` };
+                if(roll === 2) return { stateChange: 'win', payoutMult: config.payouts.field2, note: 'Field x2 (2)' };
+                if(roll === 12) return { stateChange: 'win', payoutMult: config.payouts.field12, note: `Field x${config.payouts.field12} (12)` };
+                return { stateChange: 'loss', payoutMult: 0, note: `Field pierde (${roll})` };
+            }
+            if(type === 'pass') {
+                if(context.point === null) {
+                    if(roll === 7 || roll === 11) return { stateChange: 'win', payoutMult: 1, note: `Come Out Win` };
+                    if(roll === 2 || roll === 3 || roll === 12) return { stateChange: 'loss', payoutMult: 0, note: `Craps Lose` };
+                    context.point = roll; return { stateChange: 'none', payoutMult: 0, note: `Punto: ${roll}` };
+                } else {
+                    if(roll === context.point) { context.point = null; return { stateChange: 'win', payoutMult: 1, note: `Punto acertado` }; }
+                    if(roll === 7) { context.point = null; return { stateChange: 'loss', payoutMult: 0, note: '7 Out' }; }
+                    return { stateChange: 'none', payoutMult: 0, note: `Buscando ${context.point}` };
+                }
+            }
+            if(type === 'dontpass') {
+                if(context.point === null) {
+                    if(roll === 2 || roll === 3) return { stateChange: 'win', payoutMult: 1, note: `Come Out Win` };
+                    if(roll === 12) return { stateChange: 'push', payoutMult: 0, note: 'Push (12)' };
+                    if(roll === 7 || roll === 11) return { stateChange: 'loss', payoutMult: 0, note: `Come Out Lose` };
+                    context.point = roll; return { stateChange: 'none', payoutMult: 0, note: `Punto: ${roll}` };
+                } else {
+                    if(roll === 7) { context.point = null; return { stateChange: 'win', payoutMult: 1, note: '7 Out Win' }; }
+                    if(roll === context.point) { context.point = null; return { stateChange: 'loss', payoutMult: 0, note: `Punto Pierde` }; }
+                    return { stateChange: 'none', payoutMult: 0, note: `Esperando 7` };
+                }
+            }
+            return { stateChange: 'none', payoutMult: 0, note: '?' };
+        }
+
+        function simulateStrategy(strategyDef, sequence) {
+            let bankroll = config.bankroll, initialBankroll = config.bankroll, maxBankroll = bankroll, minBankroll = bankroll;
+            let wins = 0, losses = 0, pushes = 0, currentUnits = 1, fiboIndex = 0;
+            const fiboSeq = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597];
+            let paroliWins = 0, status = 'Activa', logs = [], context = { point: null };
+
+            let unitsMultiplier = 1;
+            if (strategyDef.type === 'place' && strategyDef.nums) unitsMultiplier = strategyDef.nums.length;
+            if (strategyDef.type === 'ironcross') unitsMultiplier = 4; 
+
+            for(let i = 0; i < sequence.length; i++) {
+                const roll = sequence[i];
+                let rawBet = currentUnits * config.baseBet * unitsMultiplier;
+                let totalBetAmount = Math.min(rawBet, config.maxBetLimit, bankroll);
+                const balanceBefore = bankroll;
+
+                if(bankroll < config.baseBet) { status = 'Quiebra'; break; }
+                if (config.useLimits) {
+                    if(bankroll >= initialBankroll + config.targetProfit) { status = 'Meta Alcanzada'; break; }
+                    if(bankroll <= initialBankroll - config.stopLoss) { status = 'Stop Loss'; break; }
+                }
+
+                const result = evaluateRoll(roll, strategyDef, context);
+                let netChange = 0, logNoteAdd = '';
+
+                if(result.stateChange === 'win') {
+                    netChange = totalBetAmount * result.payoutMult; 
+                    bankroll += netChange; wins++;
+                    
+                    if(strategyDef.progression === 'flat' || strategyDef.progression === 'martingale') currentUnits = 1;
+                    else if (strategyDef.progression === 'fibonacci') { fiboIndex = Math.max(0, fiboIndex - 2); currentUnits = fiboSeq[fiboIndex]; }
+                    else if (strategyDef.progression === 'dalembert') currentUnits = Math.max(1, currentUnits - 1);
+                    else if (strategyDef.progression === 'paroli') {
+                        paroliWins++;
+                        if (paroliWins >= 3) { currentUnits = 1; paroliWins = 0; logNoteAdd = ' (Paroli completado)'; }
+                        else { currentUnits *= 2; logNoteAdd = ` (Paroli Nivel ${paroliWins+1})`; }
+                    }
+                } else if(result.stateChange === 'loss') {
+                    netChange = -totalBetAmount; bankroll += netChange; losses++;
+                    
+                    if(strategyDef.progression === 'flat') currentUnits = 1;
+                    else if (strategyDef.progression === 'martingale') { currentUnits *= 2; logNoteAdd = ' (Nivel M)'; }
+                    else if (strategyDef.progression === 'fibonacci') { fiboIndex = Math.min(fiboIndex + 1, fiboSeq.length - 1); currentUnits = fiboSeq[fiboIndex]; }
+                    else if (strategyDef.progression === 'dalembert') { currentUnits++; }
+                    else if (strategyDef.progression === 'paroli') { currentUnits = 1; paroliWins = 0; }
+                } else if(result.stateChange === 'push') pushes++;
+
+                maxBankroll = Math.max(maxBankroll, bankroll);
+                minBankroll = Math.min(minBankroll, bankroll);
+
+                logs.push({
+                    rollNum: i + 1, dice: roll, bet: result.stateChange !== 'none' ? totalBetAmount : 0,
+                    resultType: result.stateChange, balanceBefore: balanceBefore.toFixed(2), balanceAfter: bankroll.toFixed(2),
+                    note: result.note + logNoteAdd + (totalBetAmount === config.maxBetLimit ? ' [MAX BET]' : '')
+                });
+            }
+
+            return {
+                strategy: strategyDef, initialBankroll, finalBankroll: bankroll,
+                netProfit: bankroll - initialBankroll, wins, losses, pushes,
+                winRate: (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0,
+                maxDrawdown: maxBankroll - minBankroll, status, logs
+            };
+        }
+
+        window.runFullAnalysis = function() {
+            document.getElementById('cfg-bankroll').value = config.bankroll; // sync just in case
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+            
+            setTimeout(async () => {
+                const strategies = generateAllStrategies();
+                simulationResults = [];
+                strategies.forEach(strat => simulationResults.push(simulateStrategy(strat, validSequence)));
+                simulationResults.sort((a, b) => b.netProfit - a.netProfit);
+
+                renderDashboard();
+                renderRanking();
+                
+                document.getElementById('nav-dashboard').style.display = 'flex';
+                document.getElementById('nav-ranking').style.display = 'flex';
+                window.switchTab('dashboard');
+                
+                await saveSessionToCloud(simulationResults);
+                loader.classList.remove('active');
+            }, 100);
+        };
+
+        function renderDashboard() {
+            if(simulationResults.length === 0) return;
+            const profitable = simulationResults.filter(r => r.netProfit > 0);
+            const bestProfit = simulationResults[0]; 
+            let safest = profitable.length > 0 ? [...profitable].sort((a,b) => a.maxDrawdown - b.maxDrawdown)[0] : null;
+            const highWr = [...simulationResults].filter(r => (r.wins+r.losses)>10).sort((a,b) => b.winRate - a.winRate)[0];
+
+            document.getElementById('top-cards-container').innerHTML = `
+                <div class="card highlight-card success">
+                    <div class="card-title">🏆 Mayor Ganancia Neta</div>
+                    <div class="stat-value text-success">+$${bestProfit.netProfit.toFixed(2)}</div>
+                    <div class="stat-sub"><strong>${bestProfit.strategy.name}</strong></div>
+                    <button class="btn btn-outline mt-1" style="width:100%; font-size:0.8rem" onclick="window.showDetail('${bestProfit.strategy.id}')">Ver Detalle</button>
+                </div>
+                <div class="card highlight-card accent">
+                    <div class="card-title">🛡️ Estrategia Más Estable</div>
+                    <div class="stat-value text-main">${safest ? '+$'+safest.netProfit.toFixed(2) : 'N/A'}</div>
+                    <div class="stat-sub"><strong>${safest ? safest.strategy.name : 'Ninguna rentable'}</strong></div>
+                     ${safest ? `<button class="btn btn-outline mt-1" style="width:100%; font-size:0.8rem" onclick="window.showDetail('${safest.strategy.id}')">Ver Detalle</button>` : ''}
+                </div>
+                <div class="card highlight-card warning">
+                    <div class="card-title">🎯 Mayor Tasa de Acierto</div>
+                    <div class="stat-value text-warning">${highWr ? highWr.winRate.toFixed(1)+'%' : 'N/A'}</div>
+                    <div class="stat-sub"><strong>${highWr ? highWr.strategy.name : ''}</strong></div>
+                     ${highWr ? `<button class="btn btn-outline mt-1" style="width:100%; font-size:0.8rem" onclick="window.showDetail('${highWr.strategy.id}')">Ver Detalle</button>` : ''}
+                </div>
+            `;
+        }
+
+        window.sortRanking = function(column) {
+            if(currentSort.column === column) currentSort.asc = !currentSort.asc;
+            else { currentSort.column = column; currentSort.asc = false; }
+
+            simulationResults.sort((a, b) => {
+                let valA, valB;
+                switch(column) {
+                    case 'name': valA = a.strategy.name; valB = b.strategy.name; break;
+                    case 'type': valA = a.strategy.type; valB = b.strategy.type; break;
+                    case 'progression': valA = a.strategy.progression; valB = b.strategy.progression; break;
+                    case 'netProfit': valA = a.netProfit; valB = b.netProfit; break;
+                    case 'maxDrawdown': valA = a.maxDrawdown; valB = b.maxDrawdown; break;
+                    case 'winRate': valA = a.winRate; valB = b.winRate; break;
+                    case 'status': valA = a.status; valB = b.status; break;
+                }
+                if(typeof valA === 'string') return currentSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                else return currentSort.asc ? valA - valB : valB - valA;
+            });
+            renderRanking();
+        };
+
+        function renderRanking() {
+            const tbody = document.getElementById('ranking-table-body');
+            tbody.innerHTML = '';
+            simulationResults.forEach(r => {
+                let statusBadge = `<span class="bg-success-light">Terminó</span>`;
+                if(r.status === 'Quiebra') statusBadge = `<span class="bg-danger-light">Quebró</span>`;
+                else if(r.status === 'Stop Loss') statusBadge = `<span class="bg-danger-light" style="opacity:0.7">Stop Loss</span>`;
+                else if(r.status === 'Meta Alcanzada') statusBadge = `<span class="bg-success-light" style="background:var(--accent); color:white;">Meta!</span>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-weight:500;">${r.strategy.name}</td>
+                        <td style="text-transform: capitalize;">${r.strategy.type}</td>
+                        <td style="text-transform: capitalize;">${r.strategy.progression}</td>
+                        <td class="${r.netProfit >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">${r.netProfit >= 0 ? '+' : ''}S/ ${r.netProfit.toFixed(2)}</td>
+                        <td>S/ ${r.maxDrawdown.toFixed(2)}</td>
+                        <td>${r.winRate.toFixed(1)}%</td>
+                        <td>${statusBadge}</td>
+                        <td><button class="btn btn-outline" style="padding: 0.3rem 0.6rem;" onclick="window.showDetail('${r.strategy.id}')">Ver Logs</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.showDetail = function(strategyId) {
+            currentDetailedResult = simulationResults.find(r => r.strategy.id === strategyId);
+            if(!currentDetailedResult) return;
+
+            document.getElementById('nav-detail').style.display = 'flex';
+            window.switchTab('detail');
+
+            const r = currentDetailedResult;
+            document.getElementById('detail-title').innerText = `Simulación: ${r.strategy.name}`;
+            document.getElementById('detail-description').innerHTML = r.strategy.desc || "Estrategia estándar de simulación.";
+            document.getElementById('detail-betting-rules').innerHTML = `
+                <strong>💰 Gestión de Capital:</strong> Banca inicial: S/ ${r.initialBankroll.toFixed(2)} | Base configurada: <strong>S/ ${config.baseBet.toFixed(2)}</strong> por unidad.<br>
+            `;
+
+            document.getElementById('detail-summary-cards').innerHTML = `
+                <div class="card"><div class="card-title">Resultado Final</div><div class="stat-value ${r.netProfit >= 0 ? 'text-success' : 'text-danger'}">${r.netProfit >= 0 ? '+' : ''}S/ ${r.netProfit.toFixed(2)}</div></div>
+                <div class="card"><div class="card-title">Estado</div><div class="stat-value" style="font-size:1.5rem">${r.status}</div></div>
+                <div class="card"><div class="card-title">Acierto</div><div class="stat-value">${r.winRate.toFixed(1)}%</div></div>
+                <div class="card"><div class="card-title">Prog.</div><div class="stat-value" style="font-size:1.5rem; text-transform:capitalize;">${r.strategy.progression}</div></div>
+            `;
+
+            const tbody = document.getElementById('detail-table-body');
+            tbody.innerHTML = '';
+            r.logs.forEach(log => {
+                let resClass = '', resText = '-';
+                if(log.resultType === 'win') { resClass = 'text-success'; resText = 'Gana'; }
+                else if(log.resultType === 'loss') { resClass = 'text-danger'; resText = 'Pierde'; }
+                else if(log.resultType === 'push') { resClass = 'text-warning'; resText = 'Empate'; }
+                tbody.innerHTML += `<tr><td>${log.rollNum}</td><td style="font-weight:bold; font-size:1.1rem;">🎲 ${log.dice}</td><td>${log.bet > 0 ? 'S/ '+log.bet.toFixed(2) : '-'}</td><td class="${resClass} font-weight-bold">${resText}</td><td>S/ ${log.balanceBefore}</td><td>S/ ${log.balanceAfter}</td><td style="font-size:0.9rem; color:var(--text-muted);">${log.note}</td></tr>`;
+            });
+        };
+
+        window.exportCSV = function(type) {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+            if(type === 'ranking') {
+                csvContent += "Estrategia,Tipo,Progresion,Ganancia_Neta,Max_Drawdown,Win_Rate,Estado\n";
+                simulationResults.forEach(r => csvContent += `"${r.strategy.name}",${r.strategy.type},${r.strategy.progression},${r.netProfit.toFixed(2)},${r.maxDrawdown.toFixed(2)},${r.winRate.toFixed(2)},${r.status}\n`);
+            } else if(type === 'detail' && currentDetailedResult) {
+                csvContent += `Simulacion: ${currentDetailedResult.strategy.name}\n\n`;
+                csvContent += "Tirada_Num,Dado,Apuesta_Total,Resultado,Saldo_Antes,Saldo_Despues,Observacion\n";
+                currentDetailedResult.logs.forEach(log => csvContent += `${log.rollNum},${log.dice},${log.bet},${log.resultType},${log.balanceBefore},${log.balanceAfter},"${log.note}"\n`);
+            }
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `craps_export_${type}_${new Date().getTime()}.csv`);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        };
     </script>
 </body>
 </html>
