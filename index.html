@@ -1041,18 +1041,18 @@
             
             // Evaluador para Apuestas Únicas (Prop Bets)
             if(type === 'single') {
-                if(nums.includes(roll)) return { stateChange: 'win', payoutMult: strategyDef.payout, note: `Acertó tiro único (${roll})` };
-                return { stateChange: 'loss', payoutMult: 0, note: `Perdió tiro único (${roll})` };
+                if(nums.includes(roll)) return { stateChange: 'win', profitUnits: strategyDef.payout, note: `Acertó tiro único (${roll})` };
+                return { stateChange: 'loss', profitUnits: 0, note: `Perdió tiro único (${roll})` };
             }
 
             if(type === 'ironcross') {
-                if(roll === 5) return { stateChange: 'win', payoutMult: (config.payouts.place59 - 1) / 4, note: `Sitio 5 gana, Field pierde` };
-                if(roll === 6 || roll === 8) return { stateChange: 'win', payoutMult: (config.payouts.place68 - 1) / 4, note: `Sitio ${roll} gana, Field pierde` };
-                if([3,4,9,10,11].includes(roll)) return { stateChange: 'win', payoutMult: 1 / 4, note: `Field Win (${roll})` };
-                if(roll === 2) return { stateChange: 'win', payoutMult: config.payouts.field2 / 4, note: `Field x2 (${roll})` };
-                if(roll === 12) return { stateChange: 'win', payoutMult: config.payouts.field12 / 4, note: `Field x${config.payouts.field12} (${roll})` };
-                if(roll === 7) return { stateChange: 'loss', payoutMult: 0, note: '7 Out - Pierde todo (4x)' };
-                return { stateChange: 'none', payoutMult: 0, note: '?' }; 
+                if(roll === 5) return { stateChange: 'win', profitUnits: config.payouts.place59 - 1, note: `Sitio 5 gana, Field pierde` };
+                if(roll === 6 || roll === 8) return { stateChange: 'win', profitUnits: config.payouts.place68 - 1, note: `Sitio ${roll} gana, Field pierde` };
+                if([3,4,9,10,11].includes(roll)) return { stateChange: 'win', profitUnits: 1, note: `Field Win (${roll})` };
+                if(roll === 2) return { stateChange: 'win', profitUnits: config.payouts.field2, note: `Field x2 (${roll})` };
+                if(roll === 12) return { stateChange: 'win', profitUnits: config.payouts.field12, note: `Field x${config.payouts.field12} (${roll})` };
+                if(roll === 7) return { stateChange: 'loss', profitUnits: 0, note: '7 Out - Pierde todo (4x)' };
+                return { stateChange: 'none', profitUnits: 0, note: '?' }; 
             }
             if(type === 'place') {
                 if(nums.includes(roll)) {
@@ -1060,41 +1060,41 @@
                     if(roll === 6 || roll === 8) mult = config.payouts.place68;
                     else if(roll === 5 || roll === 9) mult = config.payouts.place59;
                     else if(roll === 4 || roll === 10) mult = config.payouts.place410;
-                    return { stateChange: 'win', payoutMult: mult, note: `Acertó ${roll}` };
+                    return { stateChange: 'win', profitUnits: mult, note: `Acertó ${roll}` };
                 }
-                if(roll === 7) return { stateChange: 'loss', payoutMult: 0, note: '7 Out' };
-                return { stateChange: 'none', payoutMult: 0, note: 'Esperando...' };
+                if(roll === 7) return { stateChange: 'loss', profitUnits: 0, note: '7 Out' };
+                return { stateChange: 'none', profitUnits: 0, note: 'Esperando...' };
             }
             if(type === 'field') {
-                if([3,4,9,10,11].includes(roll)) return { stateChange: 'win', payoutMult: 1, note: `Field Win (${roll})` };
-                if(roll === 2) return { stateChange: 'win', payoutMult: config.payouts.field2, note: 'Field x2 (2)' };
-                if(roll === 12) return { stateChange: 'win', payoutMult: config.payouts.field12, note: `Field x${config.payouts.field12} (12)` };
-                return { stateChange: 'loss', payoutMult: 0, note: `Field pierde (${roll})` };
+                if([3,4,9,10,11].includes(roll)) return { stateChange: 'win', profitUnits: 1, note: `Field Win (${roll})` };
+                if(roll === 2) return { stateChange: 'win', profitUnits: config.payouts.field2, note: 'Field x2 (2)' };
+                if(roll === 12) return { stateChange: 'win', profitUnits: config.payouts.field12, note: `Field x${config.payouts.field12} (12)` };
+                return { stateChange: 'loss', profitUnits: 0, note: `Field pierde (${roll})` };
             }
             if(type === 'pass') {
                 if(context.point === null) {
-                    if(roll === 7 || roll === 11) return { stateChange: 'win', payoutMult: 1, note: `Come Out Win` };
-                    if(roll === 2 || roll === 3 || roll === 12) return { stateChange: 'loss', payoutMult: 0, note: `Craps Lose` };
-                    context.point = roll; return { stateChange: 'none', payoutMult: 0, note: `Punto: ${roll}` };
+                    if(roll === 7 || roll === 11) return { stateChange: 'win', profitUnits: 1, note: `Come Out Win` };
+                    if(roll === 2 || roll === 3 || roll === 12) return { stateChange: 'loss', profitUnits: 0, note: `Craps Lose` };
+                    context.point = roll; return { stateChange: 'none', profitUnits: 0, note: `Punto: ${roll}` };
                 } else {
-                    if(roll === context.point) { context.point = null; return { stateChange: 'win', payoutMult: 1, note: `Punto acertado` }; }
-                    if(roll === 7) { context.point = null; return { stateChange: 'loss', payoutMult: 0, note: '7 Out' }; }
-                    return { stateChange: 'none', payoutMult: 0, note: `Buscando ${context.point}` };
+                    if(roll === context.point) { context.point = null; return { stateChange: 'win', profitUnits: 1, note: `Punto acertado` }; }
+                    if(roll === 7) { context.point = null; return { stateChange: 'loss', profitUnits: 0, note: '7 Out' }; }
+                    return { stateChange: 'none', profitUnits: 0, note: `Buscando ${context.point}` };
                 }
             }
             if(type === 'dontpass') {
                 if(context.point === null) {
-                    if(roll === 2 || roll === 3) return { stateChange: 'win', payoutMult: 1, note: `Come Out Win` };
-                    if(roll === 12) return { stateChange: 'push', payoutMult: 0, note: 'Push (12)' };
-                    if(roll === 7 || roll === 11) return { stateChange: 'loss', payoutMult: 0, note: `Come Out Lose` };
-                    context.point = roll; return { stateChange: 'none', payoutMult: 0, note: `Punto: ${roll}` };
+                    if(roll === 2 || roll === 3) return { stateChange: 'win', profitUnits: 1, note: `Come Out Win` };
+                    if(roll === 12) return { stateChange: 'push', profitUnits: 0, note: 'Push (12)' };
+                    if(roll === 7 || roll === 11) return { stateChange: 'loss', profitUnits: 0, note: `Come Out Lose` };
+                    context.point = roll; return { stateChange: 'none', profitUnits: 0, note: `Punto: ${roll}` };
                 } else {
-                    if(roll === 7) { context.point = null; return { stateChange: 'win', payoutMult: 1, note: '7 Out Win' }; }
-                    if(roll === context.point) { context.point = null; return { stateChange: 'loss', payoutMult: 0, note: `Punto Pierde` }; }
-                    return { stateChange: 'none', payoutMult: 0, note: `Esperando 7` };
+                    if(roll === 7) { context.point = null; return { stateChange: 'win', profitUnits: 1, note: '7 Out Win' }; }
+                    if(roll === context.point) { context.point = null; return { stateChange: 'loss', profitUnits: 0, note: `Punto Pierde` }; }
+                    return { stateChange: 'none', profitUnits: 0, note: `Esperando 7` };
                 }
             }
-            return { stateChange: 'none', payoutMult: 0, note: '?' };
+            return { stateChange: 'none', profitUnits: 0, note: '?' };
         }
 
         function simulateStrategy(strategyDef, sequence) {
@@ -1109,8 +1109,16 @@
 
             for(let i = 0; i < sequence.length; i++) {
                 const roll = sequence[i];
-                let rawBet = currentUnits * config.baseBet * unitsMultiplier;
+                
+                let unitBet = currentUnits * config.baseBet; 
+                let rawBet = unitBet * unitsMultiplier;
                 let totalBetAmount = Math.min(rawBet, config.maxBetLimit, bankroll);
+                
+                // Si la apuesta topa con un límite, reducimos proporcionalmente la apuesta por unidad
+                if (totalBetAmount < rawBet) {
+                    unitBet = totalBetAmount / unitsMultiplier;
+                }
+                
                 const balanceBefore = bankroll;
 
                 if(bankroll < config.baseBet) { status = 'Quiebra'; break; }
@@ -1123,19 +1131,26 @@
                 let netChange = 0, logNoteAdd = '';
 
                 if(result.stateChange === 'win') {
-                    netChange = totalBetAmount * result.payoutMult; 
-                    bankroll += netChange; wins++;
+                    // LA CORRECCIÓN CLAVE: La ganancia se multiplica SÓLO por la unidad ganadora, no por toda la mesa
+                    netChange = unitBet * result.profitUnits; 
+                    bankroll += netChange; 
+                    wins++;
+                    
+                    logNoteAdd = ` (+S/ ${netChange.toFixed(2)})`;
                     
                     if(strategyDef.progression === 'flat' || strategyDef.progression === 'martingale') currentUnits = 1;
                     else if (strategyDef.progression === 'fibonacci') { fiboIndex = Math.max(0, fiboIndex - 2); currentUnits = fiboSeq[fiboIndex]; }
                     else if (strategyDef.progression === 'dalembert') currentUnits = Math.max(1, currentUnits - 1);
                     else if (strategyDef.progression === 'paroli') {
                         paroliWins++;
-                        if (paroliWins >= 3) { currentUnits = 1; paroliWins = 0; logNoteAdd = ' (Paroli completado)'; }
-                        else { currentUnits *= 2; logNoteAdd = ` (Paroli Nivel ${paroliWins+1})`; }
+                        if (paroliWins >= 3) { currentUnits = 1; paroliWins = 0; logNoteAdd += ' (Paroli completado)'; }
+                        else { currentUnits *= 2; logNoteAdd += ` (Paroli Nivel ${paroliWins+1})`; }
                     }
                 } else if(result.stateChange === 'loss') {
-                    netChange = -totalBetAmount; bankroll += netChange; losses++;
+                    // Si pierde (sale un 7), pierde TODAS las unidades en juego
+                    netChange = -totalBetAmount; 
+                    bankroll += netChange; 
+                    losses++;
                     
                     if(strategyDef.progression === 'flat') currentUnits = 1;
                     else if (strategyDef.progression === 'martingale') { currentUnits *= 2; logNoteAdd = ' (Nivel M)'; }
