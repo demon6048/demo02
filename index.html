@@ -212,9 +212,11 @@
         <div class="nav-item active" onclick="window.switchTab('input')">📝 Historial de Tiradas</div>
         <div class="nav-item" onclick="window.switchTab('config')">⚙️ Configuración</div>
         <div class="nav-item" onclick="window.switchTab('analysis')">📊 Análisis de Secuencia</div>
-        <div class="nav-item" onclick="window.switchTab('dashboard')" id="nav-dashboard" style="display:none;">🏆 Mejores en Sesión</div>
-        <div class="nav-item" onclick="window.switchTab('ranking')" id="nav-ranking" style="display:none;">📋 Ranking Sesión</div>
-        <div class="nav-item" onclick="window.switchTab('detail')" id="nav-detail" style="display:none;">🔍 Simulación Detallada</div>
+        
+        <!-- PESTAÑAS AHORA SIEMPRE VISIBLES -->
+        <div class="nav-item" onclick="window.switchTab('dashboard')" id="nav-dashboard">🏆 Mejores en Sesión</div>
+        <div class="nav-item" onclick="window.switchTab('ranking')" id="nav-ranking">📋 Ranking Sesión</div>
+        <div class="nav-item" onclick="window.switchTab('detail')" id="nav-detail">🔍 Simulación Detallada</div>
         
         <div style="margin: 1rem 1.5rem; height: 1px; background: var(--border);"></div>
         
@@ -262,7 +264,7 @@
                 </div>
             </div>
 
-            <!-- NUEVA SECCIÓN DE HISTORIAL DE SECUENCIAS -->
+            <!-- SECCIÓN DE HISTORIAL DE SECUENCIAS -->
             <div class="card mt-2" style="border-left: 4px solid var(--accent);">
                 <h2>☁️ Mis Secuencias Guardadas en la Nube</h2>
                 <p style="font-size: 0.9rem;">Cada vez que analizas una secuencia, los números exactos se guardan aquí. Puedes volver a cargar tus jugadas pasadas con un solo clic.</p>
@@ -389,7 +391,9 @@
             </div>
             
             <div class="grid-3" id="top-cards-container">
-                <!-- Top cards injected via JS -->
+                <div class="card" style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">
+                    Aún no has corrido ninguna simulación en esta sesión. Pega tus números y presiona "Buscar Mejor Estrategia".
+                </div>
             </div>
         </div>
 
@@ -418,7 +422,7 @@
                             </tr>
                         </thead>
                         <tbody id="ranking-table-body">
-                            <!-- Injected -->
+                            <tr><td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-muted);">Sin datos. Corre una simulación primero.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -437,9 +441,9 @@
 
             <div class="card mb-1" style="border-left: 4px solid var(--primary);">
                 <h3 style="margin-bottom: 0.5rem; color: var(--primary);">📖 Cómo aplicar esta estrategia en la mesa</h3>
-                <p id="detail-description" style="margin-bottom: 0.5rem; line-height: 1.6;"></p>
+                <p id="detail-description" style="margin-bottom: 0.5rem; line-height: 1.6;">Selecciona una estrategia desde la pestaña "Ranking" para ver su detalle aquí.</p>
                 <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px dashed var(--border); margin-top: 10px;">
-                    <p id="detail-betting-rules" class="text-muted" style="font-size: 0.95rem; margin-bottom: 0;"></p>
+                    <p id="detail-betting-rules" class="text-muted" style="font-size: 0.95rem; margin-bottom: 0;">-</p>
                 </div>
             </div>
 
@@ -462,7 +466,7 @@
                             </tr>
                         </thead>
                         <tbody id="detail-table-body">
-                            <!-- Injected -->
+                            <tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">Sin datos.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -725,7 +729,7 @@
             const tbody = document.getElementById('saved-sequences-body');
             tbody.innerHTML = '';
             if(sessions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-muted" style="text-align:center;">Aún no tienes secuencias guardadas. Analiza unos números para guardar tu primera sesión.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-muted" style="text-align:center; padding: 2rem;">Aún no tienes secuencias guardadas. Analiza unos números para guardar tu primera sesión.</td></tr>';
                 return;
             }
 
@@ -971,6 +975,14 @@
                 strats.push({ id: `pass_${prog}`, name: `Pass Line (${prog})`, type: 'pass', progression: prog, desc: `Pass Line Clásico.<br><br>${getProgDesc(prog)}` });
                 strats.push({ id: `dontpass_${prog}`, name: `Don't Pass (${prog})`, type: 'dontpass', progression: prog, desc: `Don't Pass.<br><br>${getProgDesc(prog)}` });
                 strats.push({ id: `field_${prog}`, name: `Field (${prog})`, type: 'field', progression: prog, desc: `Caja Field (2,3,4,9,10,11,12).<br><br>${getProgDesc(prog)}` });
+                
+                // Nuevas: Apuestas de un solo tiro (Prop Bets)
+                strats.push({ id: `any7_${prog}`, name: `Cualquier 7 (${prog})`, type: 'single', nums: [7], payout: config.payouts.any7, progression: prog, desc: `Apuesta directa al 7. Paga ${config.payouts.any7} a 1.<br><br>${getProgDesc(prog)}` });
+                strats.push({ id: `anycraps_${prog}`, name: `Any Craps (2,3,12) (${prog})`, type: 'single', nums: [2,3,12], payout: 7, progression: prog, desc: `Apuesta a Craps (2, 3 o 12). Paga 7 a 1.<br><br>${getProgDesc(prog)}` });
+                strats.push({ id: `solo2_${prog}`, name: `Solo al 2 (${prog})`, type: 'single', nums: [2], payout: 30, progression: prog, desc: `Apuesta exacta al 2. Paga 30 a 1.<br><br>${getProgDesc(prog)}` });
+                strats.push({ id: `solo12_${prog}`, name: `Solo al 12 (${prog})`, type: 'single', nums: [12], payout: 30, progression: prog, desc: `Apuesta exacta al 12. Paga 30 a 1.<br><br>${getProgDesc(prog)}` });
+                strats.push({ id: `solo3_${prog}`, name: `Solo al 3 (${prog})`, type: 'single', nums: [3], payout: 15, progression: prog, desc: `Apuesta exacta al 3. Paga 15 a 1.<br><br>${getProgDesc(prog)}` });
+                strats.push({ id: `solo11_${prog}`, name: `Solo al 11 (${prog})`, type: 'single', nums: [11], payout: 15, progression: prog, desc: `Apuesta exacta al 11. Paga 15 a 1.<br><br>${getProgDesc(prog)}` });
             });
 
             const placeNums = [4,5,6,8,9,10];
@@ -983,6 +995,11 @@
             const combos = [
                 {name: "6 y 8 (Inside)", nums: [6,8], text: "Sitio 6 y 8 simultáneos."},
                 {name: "5 y 9", nums: [5,9], text: "Sitio 5 y 9 simultáneos."},
+                {name: "4 y 10 (Outside)", nums: [4,10], text: "Sitio 4 y 10 simultáneos."},
+                {name: "Inside Completo", nums: [5,6,8,9], text: "Cubre los números centrales: 5, 6, 8 y 9. Cuesta 4 unidades."},
+                {name: "Outside Completo", nums: [4,5,9,10], text: "Cubre los extremos: 4, 5, 9 y 10. Cuesta 4 unidades."},
+                {name: "Across (Todos)", nums: [4,5,6,8,9,10], text: "Cubre todos los sitios. Cuesta 6 unidades."},
+                {name: "Pares", nums: [4,6,8,10], text: "Sitios pares: 4, 6, 8 y 10. Cuesta 4 unidades."},
                 {name: "Hierro Cruz", nums: [5,6,8], special: 'ironcross', text: "Iron Cross Completo (5,6,8 + Field). Cuesta 4 unidades."}
             ];
 
@@ -992,11 +1009,42 @@
                 });
             });
 
+            // Auto-generar TODOS los pares posibles (2 números)
+            for(let i=0; i<placeNums.length; i++) {
+                for(let j=i+1; j<placeNums.length; j++) {
+                    const n1 = placeNums[i], n2 = placeNums[j];
+                    if((n1==6&&n2==8) || (n1==5&&n2==9) || (n1==4&&n2==10)) continue; // ya existen como populares
+                    progressions.forEach(prog => {
+                        strats.push({ id: `auto_combo_${n1}_${n2}_${prog}`, name: `Sitio ${n1} y ${n2} (${prog})`, type: 'place', nums: [n1, n2], progression: prog, desc: `Cobertura a ${n1} y ${n2}. <br><br>${getProgDesc(prog)}` });
+                    });
+                }
+            }
+
+            // Auto-generar TODAS las tríadas posibles (3 números)
+            for(let i=0; i<placeNums.length; i++) {
+                for(let j=i+1; j<placeNums.length; j++) {
+                    for(let k=j+1; k<placeNums.length; k++) {
+                        const n1 = placeNums[i], n2 = placeNums[j], n3 = placeNums[k];
+                        if(n1==5 && n2==6 && n3==8) continue; // Iron Cross base
+                        progressions.forEach(prog => {
+                            strats.push({ id: `auto_combo_${n1}_${n2}_${n3}_${prog}`, name: `Sitio ${n1}, ${n2}, ${n3} (${prog})`, type: 'place', nums: [n1, n2, n3], progression: prog, desc: `Cobertura múltiple a ${n1}, ${n2} y ${n3}. <br><br>${getProgDesc(prog)}` });
+                        });
+                    }
+                }
+            }
+
             return strats;
         }
 
         function evaluateRoll(roll, strategyDef, context) {
             const { type, nums } = strategyDef;
+            
+            // Evaluador para Apuestas Únicas (Prop Bets)
+            if(type === 'single') {
+                if(nums.includes(roll)) return { stateChange: 'win', payoutMult: strategyDef.payout, note: `Acertó tiro único (${roll})` };
+                return { stateChange: 'loss', payoutMult: 0, note: `Perdió tiro único (${roll})` };
+            }
+
             if(type === 'ironcross') {
                 if(roll === 5) return { stateChange: 'win', payoutMult: (config.payouts.place59 - 1) / 4, note: `Sitio 5 gana, Field pierde` };
                 if(roll === 6 || roll === 8) return { stateChange: 'win', payoutMult: (config.payouts.place68 - 1) / 4, note: `Sitio ${roll} gana, Field pierde` };
@@ -1128,8 +1176,6 @@
                 renderDashboard();
                 renderRanking();
                 
-                document.getElementById('nav-dashboard').style.display = 'flex';
-                document.getElementById('nav-ranking').style.display = 'flex';
                 window.switchTab('dashboard');
                 
                 await saveSessionToCloud(simulationResults);
@@ -1215,7 +1261,6 @@
             currentDetailedResult = simulationResults.find(r => r.strategy.id === strategyId);
             if(!currentDetailedResult) return;
 
-            document.getElementById('nav-detail').style.display = 'flex';
             window.switchTab('detail');
 
             const r = currentDetailedResult;
