@@ -178,6 +178,16 @@
         .dice-tag:hover { transform: scale(1.1); z-index: 10; position: relative; }
         .dice-tag.seven { border-color: var(--danger); color: #fca5a5; }
 
+        /* Numbers Frequency Chart */
+        .bar-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .bar-label { width: 60px; font-weight: 700; font-size: 1.1rem; text-align: center; }
+        .bar-track { flex: 1; background: var(--bg-base); height: 28px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); position: relative; display: flex; align-items: center; }
+        .bar-fill { height: 100%; transition: width 0.5s ease-out; }
+        .bar-fill.normal { background: linear-gradient(90deg, rgba(59,130,246,0.2) 0%, rgba(59,130,246,0.8) 100%); border-right: 2px solid var(--primary); }
+        .bar-fill.seven { background: linear-gradient(90deg, rgba(239,68,68,0.2) 0%, rgba(239,68,68,0.8) 100%); border-right: 2px solid var(--danger); }
+        .bar-text { position: absolute; right: 10px; font-size: 0.85rem; font-weight: 700; color: var(--text-main); text-shadow: 1px 1px 3px rgba(0,0,0,0.9); }
+        .bar-stats { width: 90px; text-align: right; font-size: 0.9rem; color: var(--text-muted); }
+
         /* Loader */
         #loader {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -248,9 +258,9 @@
 
                     <div class="mt-2 p-4" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
                         <h3>🚀 Motor de Búsqueda Masivo</h3>
-                        <p style="font-size: 0.9rem;">Prueba +250 combinaciones a la vez y te muestra el <strong>Top 5 de las más rentables</strong>. Se guardarán en la nube para estadísticas históricas.</p>
+                        <p style="font-size: 0.9rem;">Prueba +300 combinaciones a la vez y te muestra el <strong>Top 10 de las más rentables</strong>. Se guardarán en la nube para estadísticas históricas.</p>
                         <button class="btn btn-accent" style="width: 100%; font-size: 1.05rem; padding: 1rem;" onclick="window.runFullAnalysis()" id="btn-run-analysis">
-                            🔍 Buscar el Top 5 de Mejores Estrategias
+                            🔍 Buscar el Top 10 de Mejores Estrategias
                         </button>
                     </div>
                 </div>
@@ -271,7 +281,7 @@
                         
                         <!-- NUEVO: BUSCADOR DE ESTRATEGIAS -->
                         <div class="form-group mb-1">
-                            <input type="text" id="strategy-search" placeholder="🔍 Buscar jugada (ej. Across, Paroli, 6 y 8)..." onkeyup="window.filterStrategies()" style="margin-bottom: 8px; border-color: var(--accent);">
+                            <input type="text" id="strategy-search" placeholder="🔍 Buscar jugada (ej. Across, Paroli, 6 y 8, 4 5 6 8)..." onkeyup="window.filterStrategies()" style="margin-bottom: 8px; border-color: var(--accent);">
                             <select id="manual-strategy-select" style="width: 100%; font-size: 0.95rem; background: var(--bg-panel);">
                                 <option value="">Cargando estrategias...</option>
                             </select>
@@ -415,13 +425,13 @@
         <!-- TAB: DASHBOARD (BEST STRATEGIES) -->
         <div id="tab-dashboard" class="tab-pane">
             <div class="flex-between">
-                <h1>Resultados: Top 5 de esta Sesión</h1>
-                <button class="btn btn-outline" onclick="window.switchTab('ranking')">Ver Ranking Completo (+250) ➔</button>
+                <h1>Resultados: Top 10 de esta Sesión</h1>
+                <button class="btn btn-outline" onclick="window.switchTab('ranking')">Ver Ranking Completo (+300) ➔</button>
             </div>
             
             <div class="grid-3" id="top-cards-container">
                 <div class="card" style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">
-                    Aún no has corrido ninguna simulación en esta sesión. Pega tus números y presiona "Buscar el Top 5".
+                    Aún no has corrido ninguna simulación en esta sesión. Pega tus números y presiona "Buscar el Top 10".
                 </div>
             </div>
         </div>
@@ -515,7 +525,16 @@
                 <!-- injected -->
             </div>
             
-            <div class="card mt-1">
+            <div class="card mt-1" style="border-top: 4px solid var(--accent);">
+                <h2>📊 Top de Números (Frecuencia Histórica)</h2>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Proporción y estadística real de <strong>absolutamente todos los dados que has simulado en tu historia</strong>. Descubre qué números están dominando tu mesa a lo largo de la semana o mes.</p>
+                <div id="global-numbers-chart" style="padding-right: 10px;">
+                    <div class="text-muted" style="text-align:center;">Nube no sincronizada.</div>
+                </div>
+            </div>
+
+            <div class="card mt-2">
+                <h2>🏆 Historial Global de Estrategias</h2>
                 <div class="table-container" style="max-height: 55vh;">
                     <table id="global-ranking-table">
                         <thead>
@@ -524,7 +543,7 @@
                                 <th>Estrategia Base</th>
                                 <th class="text-success">Ganancia Neta Acumulada (S/)</th>
                                 <th>Win Rate Promedio</th>
-                                <th>Veces en Top 5</th>
+                                <th>Veces en Top 10</th>
                                 <th>Veces #1</th>
                             </tr>
                         </thead>
@@ -723,6 +742,24 @@
                     }
                 }
             }
+
+            // --- Cuartetos (Grupos de 4 números) ---
+            for(let i=0; i<placeNums.length; i++) {
+                for(let j=i+1; j<placeNums.length; j++) {
+                    for(let k=j+1; k<placeNums.length; k++) {
+                        for(let l=k+1; l<placeNums.length; l++) {
+                            const n1 = placeNums[i], n2 = placeNums[j], n3 = placeNums[k], n4 = placeNums[l];
+                            if(n1==5 && n2==6 && n3==8 && n4==9) continue; 
+                            if(n1==4 && n2==5 && n3==9 && n4==10) continue; 
+                            if(n1==4 && n2==6 && n3==8 && n4==10) continue; 
+                            progressions.forEach(prog => {
+                                strats.push({ id: `auto_combo_${n1}_${n2}_${n3}_${n4}_${prog}`, name: `Sitio ${n1}, ${n2}, ${n3}, ${n4} (${prog})`, type: 'place', nums: [n1, n2, n3, n4], progression: prog, desc: `Cobertura múltiple a 4 números: ${n1}, ${n2}, ${n3} y ${n4}. <br><br>${getProgDesc(prog)}` });
+                            });
+                        }
+                    }
+                }
+            }
+
             return strats;
         };
 
@@ -731,7 +768,7 @@
             const cf = window.config.payouts;
             
             if(type === 'single') {
-                if(nums.includes(roll)) return { stateChange: 'win', profitUnits: strategyDef.payout, note: `Acertó tiro único (${roll})` };
+                if(nums && nums.includes(roll)) return { stateChange: 'win', profitUnits: strategyDef.payout, note: `Acertó tiro único (${roll})` };
                 return { stateChange: 'loss', profitUnits: 0, note: `Perdió tiro único (${roll})` };
             }
 
@@ -745,7 +782,7 @@
                 return { stateChange: 'none', profitUnits: 0, note: '?' }; 
             }
             if(type === 'place') {
-                if(nums.includes(roll)) {
+                if(nums && nums.includes(roll)) {
                     let mult = 1;
                     if(roll === 6 || roll === 8) mult = cf.place68;
                     else if(roll === 5 || roll === 9) mult = cf.place59;
@@ -975,16 +1012,16 @@
             
             const categories = {
                 'Apuestas Básicas y Proposiciones': s => ['pass', 'dontpass', 'field', 'single'].includes(s.type),
-                'Sitios Individuales (1 Número)': s => s.type === 'place' && s.nums.length === 1,
+                'Sitios Individuales (1 Número)': s => s.type === 'place' && s.nums && s.nums.length === 1,
                 'Combos Famosos (Sistemas)': s => ['ironcross'].includes(s.type) || (s.type === 'place' && (s.name.includes("Inside") || s.name.includes("Outside") || s.name.includes("Across") || s.name.includes("Pares") || s.name.includes("5 y 9"))),
-                'Pares Generados (2 Números)': s => s.type === 'place' && s.nums.length === 2 && s.id.startsWith("auto_combo"),
-                'Tríadas Generadas (3 Números)': s => s.type === 'place' && s.nums.length === 3 && s.id.startsWith("auto_combo")
+                'Pares Generados (2 Números)': s => s.type === 'place' && s.nums && s.nums.length === 2 && s.id.startsWith("auto_combo"),
+                'Tríadas Generadas (3 Números)': s => s.type === 'place' && s.nums && s.nums.length === 3 && s.id.startsWith("auto_combo"),
+                'Cuartetos Generados (4 Números)': s => s.type === 'place' && s.nums && s.nums.length === 4 && s.id.startsWith("auto_combo")
             };
 
             let foundAny = false;
 
             for(let cat in categories) {
-                // Filtramos por categoría Y por el término de búsqueda
                 const stratsInCategory = allStrats.filter(categories[cat]).filter(s => s.name.toLowerCase().includes(term));
                 
                 if (stratsInCategory.length > 0) {
@@ -1001,7 +1038,6 @@
                 }
             }
 
-            // Si no se encuentra nada con la búsqueda
             if (!foundAny) {
                 const opt = document.createElement('option');
                 opt.value = "";
@@ -1044,12 +1080,12 @@
         window.renderDashboard = function() {
             if(window.simulationResults.length === 0) return;
             
-            const top5 = window.simulationResults.slice(0, 5);
+            const top10 = window.simulationResults.slice(0, 10);
             let html = '';
             
-            top5.forEach((r, index) => {
+            top10.forEach((r, index) => {
                 let badge = index === 0 ? '🏆 #1 Mejor Ganancia' : (index === 1 ? '🥈 #2 Lugar' : (index === 2 ? '🥉 #3 Lugar' : `🏅 #${index+1} Lugar`));
-                let colorClass = index === 0 ? 'success' : (index === 1 ? 'accent' : 'primary');
+                let colorClass = index === 0 ? 'success' : (index === 1 ? 'accent' : (index === 2 ? 'warning' : 'primary'));
                 if(r.netProfit < 0) colorClass = 'danger'; // Por si todas perdieron
                 
                 html += `
@@ -1302,16 +1338,29 @@
 
         function processGlobalHistory(sessions) {
             let globalAggregated = {}, totalRollsAllTime = 0;
+            let numberCounts = {2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0};
+
             sessions.forEach(session => {
                 totalRollsAllTime += session.rollsCount || 0;
+                
+                // Conteo de Números Históricos
+                if(session.sequence) {
+                    const rolls = session.sequence.split(',').map(Number);
+                    rolls.forEach(r => {
+                        if(numberCounts[r] !== undefined) {
+                            numberCounts[r]++;
+                        }
+                    });
+                }
+
                 session.strategies.forEach((s, index) => {
-                    if(!globalAggregated[s.id]) globalAggregated[s.id] = { id: s.id, name: s.name, totalNetProfit: 0, timesFirst: 0, timesInTop5: 0, sumWinRate: 0, count: 0 };
+                    if(!globalAggregated[s.id]) globalAggregated[s.id] = { id: s.id, name: s.name, totalNetProfit: 0, timesFirst: 0, timesInTop10: 0, sumWinRate: 0, count: 0 };
                     globalAggregated[s.id].totalNetProfit += s.netProfit; 
                     globalAggregated[s.id].sumWinRate += s.winRate; 
                     globalAggregated[s.id].count += 1;
                     
                     if (session.bestStrategyId === s.id) globalAggregated[s.id].timesFirst += 1;
-                    if (index < 5) globalAggregated[s.id].timesInTop5 += 1; // Rastrear apariciones en el Top 5
+                    if (index < 10) globalAggregated[s.id].timesInTop10 += 1; // Rastrear apariciones en el Top 10
                 });
             });
             const ranking = Object.values(globalAggregated).map(s => ({ ...s, avgWinRate: s.sumWinRate / s.count })).sort((a, b) => b.totalNetProfit - a.totalNetProfit);
@@ -1328,10 +1377,53 @@
                     <td style="font-weight:bold;">${r.name}</td>
                     <td class="${r.totalNetProfit >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">${r.totalNetProfit >= 0 ? '+' : ''}S/ ${r.totalNetProfit.toFixed(2)}</td>
                     <td>${r.avgWinRate.toFixed(1)}%</td>
-                    <td><span class="badge" style="background: ${r.timesInTop5 > 0 ? 'var(--primary)' : 'var(--bg-panel)'}; color: ${r.timesInTop5 > 0 ? '#fff' : 'var(--text-muted)'}">${r.timesInTop5} veces</span></td>
+                    <td><span class="badge" style="background: ${r.timesInTop10 > 0 ? 'var(--primary)' : 'var(--bg-panel)'}; color: ${r.timesInTop10 > 0 ? '#fff' : 'var(--text-muted)'}">${r.timesInTop10} veces</span></td>
                     <td><span class="badge" style="background: ${r.timesFirst > 0 ? 'var(--warning)' : 'var(--bg-panel)'}; color: ${r.timesFirst > 0 ? '#000' : 'var(--text-muted)'}">${r.timesFirst} veces</span></td>
                 </tr>`;
             });
+
+            renderGlobalNumbersChart(numberCounts, totalRollsAllTime);
+        }
+
+        function renderGlobalNumbersChart(counts, totalRolls) {
+            const chartDiv = document.getElementById('global-numbers-chart');
+            if(totalRolls === 0) {
+                chartDiv.innerHTML = '<div class="text-muted" style="text-align:center;">No hay tiradas registradas en la nube.</div>';
+                return;
+            }
+            
+            const sortedNumbers = Object.keys(counts).map(n => ({
+                num: Number(n),
+                count: counts[n],
+                pct: (counts[n] / totalRolls) * 100
+            })).sort((a, b) => b.count - a.count);
+            
+            const maxCount = sortedNumbers[0].count;
+            
+            let html = '';
+            sortedNumbers.forEach((item, index) => {
+                let fillClass = item.num === 7 ? 'seven' : 'normal';
+                const widthPct = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+                
+                let medal = '';
+                if(index === 0) medal = '🥇 ';
+                else if (index === 1) medal = '🥈 ';
+                else if (index === 2) medal = '🥉 ';
+                
+                const textDisplay = item.count > 0 ? `${medal}${item.pct.toFixed(1)}%` : '0%';
+                
+                html += `
+                <div class="bar-row">
+                    <div class="bar-label">🎲 ${item.num}</div>
+                    <div class="bar-track">
+                        <div class="bar-fill ${fillClass}" style="width: ${widthPct}%"></div>
+                        <div class="bar-text">${textDisplay}</div>
+                    </div>
+                    <div class="bar-stats">${item.count} veces</div>
+                </div>`;
+            });
+            
+            chartDiv.innerHTML = html;
         }
 
         initFirebase();
