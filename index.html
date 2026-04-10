@@ -248,9 +248,9 @@
 
                     <div class="mt-2 p-4" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
                         <h3>🚀 Motor de Búsqueda Masivo</h3>
-                        <p style="font-size: 0.9rem;">Prueba +250 combinaciones a la vez y guarda la mejor en la nube para estadísticas históricas.</p>
-                        <button class="btn btn-accent" style="width: 100%;" onclick="window.runFullAnalysis()" id="btn-run-analysis">
-                            Buscar Mejor Estrategia Automáticamente
+                        <p style="font-size: 0.9rem;">Prueba +250 combinaciones a la vez y te muestra el <strong>Top 5 de las más rentables</strong>. Se guardarán en la nube para estadísticas históricas.</p>
+                        <button class="btn btn-accent" style="width: 100%; font-size: 1.05rem; padding: 1rem;" onclick="window.runFullAnalysis()" id="btn-run-analysis">
+                            🔍 Buscar el Top 5 de Mejores Estrategias
                         </button>
                     </div>
                 </div>
@@ -411,13 +411,13 @@
         <!-- TAB: DASHBOARD (BEST STRATEGIES) -->
         <div id="tab-dashboard" class="tab-pane">
             <div class="flex-between">
-                <h1>Resultados de esta Sesión</h1>
-                <button class="btn btn-outline" onclick="window.switchTab('ranking')">Ver Ranking Completo ➔</button>
+                <h1>Resultados: Top 5 de esta Sesión</h1>
+                <button class="btn btn-outline" onclick="window.switchTab('ranking')">Ver Ranking Completo (+250) ➔</button>
             </div>
             
             <div class="grid-3" id="top-cards-container">
                 <div class="card" style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">
-                    Aún no has corrido ninguna simulación en esta sesión. Pega tus números y presiona "Buscar Mejor Estrategia".
+                    Aún no has corrido ninguna simulación en esta sesión. Pega tus números y presiona "Buscar el Top 5".
                 </div>
             </div>
         </div>
@@ -520,7 +520,8 @@
                                 <th>Estrategia Base</th>
                                 <th class="text-success">Ganancia Neta Acumulada (S/)</th>
                                 <th>Win Rate Promedio</th>
-                                <th>Veces que fue la #1</th>
+                                <th>Veces en Top 5</th>
+                                <th>Veces #1</th>
                             </tr>
                         </thead>
                         <tbody id="global-ranking-body">
@@ -1015,31 +1016,30 @@
 
         window.renderDashboard = function() {
             if(window.simulationResults.length === 0) return;
-            const profitable = window.simulationResults.filter(r => r.netProfit > 0);
-            const bestProfit = window.simulationResults[0]; 
-            let safest = profitable.length > 0 ? [...profitable].sort((a,b) => a.maxDrawdown - b.maxDrawdown)[0] : null;
-            const highWr = [...window.simulationResults].filter(r => (r.wins+r.losses)>10).sort((a,b) => b.winRate - a.winRate)[0];
+            
+            const top5 = window.simulationResults.slice(0, 5);
+            let html = '';
+            
+            top5.forEach((r, index) => {
+                let badge = index === 0 ? '🏆 #1 Mejor Ganancia' : (index === 1 ? '🥈 #2 Lugar' : (index === 2 ? '🥉 #3 Lugar' : `🏅 #${index+1} Lugar`));
+                let colorClass = index === 0 ? 'success' : (index === 1 ? 'accent' : 'primary');
+                if(r.netProfit < 0) colorClass = 'danger'; // Por si todas perdieron
+                
+                html += `
+                <div class="card highlight-card ${colorClass}">
+                    <div class="card-title">${badge}</div>
+                    <div class="stat-value ${r.netProfit >= 0 ? 'text-success' : 'text-danger'}">${r.netProfit >= 0 ? '+' : ''}S/ ${r.netProfit.toFixed(2)}</div>
+                    <div class="stat-sub" style="font-size: 1.05rem;"><strong>${r.strategy.name}</strong></div>
+                    <div class="stat-sub text-muted" style="margin-top: 10px;">
+                        🎯 Win Rate: <strong>${r.winRate.toFixed(1)}%</strong><br>
+                        📉 Max Drawdown: S/ ${r.maxDrawdown.toFixed(2)}
+                    </div>
+                    <button class="btn btn-outline mt-1" style="width:100%; font-size:0.85rem" onclick="window.showDetail('${r.strategy.id}')">🔍 Ver Detalle y Jugadas</button>
+                </div>
+                `;
+            });
 
-            document.getElementById('top-cards-container').innerHTML = `
-                <div class="card highlight-card success">
-                    <div class="card-title">🏆 Mayor Ganancia Neta</div>
-                    <div class="stat-value text-success">+$${bestProfit.netProfit.toFixed(2)}</div>
-                    <div class="stat-sub"><strong>${bestProfit.strategy.name}</strong></div>
-                    <button class="btn btn-outline mt-1" style="width:100%; font-size:0.8rem" onclick="window.showDetail('${bestProfit.strategy.id}')">Ver Detalle</button>
-                </div>
-                <div class="card highlight-card accent">
-                    <div class="card-title">🛡️ Estrategia Más Estable</div>
-                    <div class="stat-value text-main">${safest ? '+$'+safest.netProfit.toFixed(2) : 'N/A'}</div>
-                    <div class="stat-sub"><strong>${safest ? safest.strategy.name : 'Ninguna rentable'}</strong></div>
-                     ${safest ? `<button class="btn btn-outline mt-1" style="width:100%; font-size:0.8rem" onclick="window.showDetail('${safest.strategy.id}')">Ver Detalle</button>` : ''}
-                </div>
-                <div class="card highlight-card warning">
-                    <div class="card-title">🎯 Mayor Tasa de Acierto</div>
-                    <div class="stat-value text-warning">${highWr ? highWr.winRate.toFixed(1)+'%' : 'N/A'}</div>
-                    <div class="stat-sub"><strong>${highWr ? highWr.strategy.name : ''}</strong></div>
-                     ${highWr ? `<button class="btn btn-outline mt-1" style="width:100%; font-size:0.8rem" onclick="window.showDetail('${highWr.strategy.id}')">Ver Detalle</button>` : ''}
-                </div>
-            `;
+            document.getElementById('top-cards-container').innerHTML = html;
         };
 
         window.renderRanking = function() {
@@ -1277,10 +1277,14 @@
             let globalAggregated = {}, totalRollsAllTime = 0;
             sessions.forEach(session => {
                 totalRollsAllTime += session.rollsCount || 0;
-                session.strategies.forEach(s => {
-                    if(!globalAggregated[s.id]) globalAggregated[s.id] = { id: s.id, name: s.name, totalNetProfit: 0, timesFirst: 0, sumWinRate: 0, count: 0 };
-                    globalAggregated[s.id].totalNetProfit += s.netProfit; globalAggregated[s.id].sumWinRate += s.winRate; globalAggregated[s.id].count += 1;
+                session.strategies.forEach((s, index) => {
+                    if(!globalAggregated[s.id]) globalAggregated[s.id] = { id: s.id, name: s.name, totalNetProfit: 0, timesFirst: 0, timesInTop5: 0, sumWinRate: 0, count: 0 };
+                    globalAggregated[s.id].totalNetProfit += s.netProfit; 
+                    globalAggregated[s.id].sumWinRate += s.winRate; 
+                    globalAggregated[s.id].count += 1;
+                    
                     if (session.bestStrategyId === s.id) globalAggregated[s.id].timesFirst += 1;
+                    if (index < 5) globalAggregated[s.id].timesInTop5 += 1; // Rastrear apariciones en el Top 5
                 });
             });
             const ranking = Object.values(globalAggregated).map(s => ({ ...s, avgWinRate: s.sumWinRate / s.count })).sort((a, b) => b.totalNetProfit - a.totalNetProfit);
@@ -1292,7 +1296,14 @@
             const tbody = document.getElementById('global-ranking-body');
             tbody.innerHTML = '';
             ranking.forEach((r, i) => {
-                tbody.innerHTML += `<tr><td>#${i+1}</td><td style="font-weight:bold;">${r.name}</td><td class="${r.totalNetProfit >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">${r.totalNetProfit >= 0 ? '+' : ''}S/ ${r.totalNetProfit.toFixed(2)}</td><td>${r.avgWinRate.toFixed(1)}%</td><td><span class="badge" style="background: ${r.timesFirst > 0 ? 'var(--warning)' : 'var(--bg-panel)'}; color: ${r.timesFirst > 0 ? '#000' : 'var(--text-muted)'}">${r.timesFirst} veces</span></td></tr>`;
+                tbody.innerHTML += `<tr>
+                    <td>#${i+1}</td>
+                    <td style="font-weight:bold;">${r.name}</td>
+                    <td class="${r.totalNetProfit >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">${r.totalNetProfit >= 0 ? '+' : ''}S/ ${r.totalNetProfit.toFixed(2)}</td>
+                    <td>${r.avgWinRate.toFixed(1)}%</td>
+                    <td><span class="badge" style="background: ${r.timesInTop5 > 0 ? 'var(--primary)' : 'var(--bg-panel)'}; color: ${r.timesInTop5 > 0 ? '#fff' : 'var(--text-muted)'}">${r.timesInTop5} veces</span></td>
+                    <td><span class="badge" style="background: ${r.timesFirst > 0 ? 'var(--warning)' : 'var(--bg-panel)'}; color: ${r.timesFirst > 0 ? '#000' : 'var(--text-muted)'}">${r.timesFirst} veces</span></td>
+                </tr>`;
             });
         }
 
