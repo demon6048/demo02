@@ -431,13 +431,25 @@
         <!-- TAB: DASHBOARD (BEST STRATEGIES) -->
         <div id="tab-dashboard" class="tab-pane">
             <div class="flex-between">
-                <h1>Resultados: Top 14 de esta Sesión</h1>
+                <h1>Resultados de esta Sesión</h1>
                 <button class="btn btn-outline" onclick="window.switchTab('ranking')">Ver Ranking Completo (+300) ➔</button>
             </div>
             
+            <!-- SECCIÓN: ALTO RENDIMIENTO -->
+            <h2 style="margin-top: 1rem; color: var(--success);">🔥 Top 14: Mayor Ganancia Neta (Más Rentables)</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Las estrategias que acumularon más dinero al final, sin importar cuánto riesgo o estrés tomaron durante la partida.</p>
             <div class="grid-3" id="top-cards-container">
                 <div class="card" style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">
                     Aún no has corrido ninguna simulación en esta sesión. Pega tus números y presiona "Buscar el Top 14".
+                </div>
+            </div>
+
+            <!-- SECCIÓN NUEVA: BAJO RIESGO / BAJO PRESUPUESTO -->
+            <h2 style="margin-top: 3rem; color: var(--primary);">🛡️ Top 5: Bajo Riesgo y Presupuesto (Más Seguras)</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Estrategias que lograron ganancias casi seguras sufriendo la <strong>menor caída de dinero posible (Max Drawdown bajo)</strong>. Ideales para jugar tranquilo y con poco capital.</p>
+            <div class="grid-3" id="safe-cards-container">
+                <div class="card" style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">
+                    Esperando simulación...
                 </div>
             </div>
         </div>
@@ -1093,15 +1105,16 @@
         window.renderDashboard = function() {
             if(window.simulationResults.length === 0) return;
             
+            // --- 1. RENDERIZAR TOP 14 (Mayor Ganancia) ---
             const top14 = window.simulationResults.slice(0, 14);
-            let html = '';
+            let htmlTop = '';
             
             top14.forEach((r, index) => {
                 let badge = index === 0 ? '🏆 #1 Mejor Ganancia' : (index === 1 ? '🥈 #2 Lugar' : (index === 2 ? '🥉 #3 Lugar' : `🏅 #${index+1} Lugar`));
                 let colorClass = index === 0 ? 'success' : (index === 1 ? 'accent' : (index === 2 ? 'warning' : 'primary'));
                 if(r.netProfit < 0) colorClass = 'danger'; // Por si todas perdieron
                 
-                html += `
+                htmlTop += `
                 <div class="card highlight-card ${colorClass}">
                     <div class="card-title">${badge}</div>
                     <div class="stat-value ${r.netProfit >= 0 ? 'text-success' : 'text-danger'}">${r.netProfit >= 0 ? '+' : ''}S/ ${r.netProfit.toFixed(2)}</div>
@@ -1115,7 +1128,39 @@
                 `;
             });
 
-            document.getElementById('top-cards-container').innerHTML = html;
+            document.getElementById('top-cards-container').innerHTML = htmlTop;
+
+            // --- 2. RENDERIZAR TOP 5 MÁS SEGURAS (Bajo Drawdown con ganancia > 0) ---
+            let safeStrats = [...window.simulationResults]
+                .filter(r => r.netProfit > 0) // Solo estrategias que ganaron dinero
+                .sort((a, b) => {
+                    if (a.maxDrawdown === b.maxDrawdown) {
+                        return b.netProfit - a.netProfit; // Si el riesgo es igual, prefiere la que ganó más
+                    }
+                    return a.maxDrawdown - b.maxDrawdown; // Ordenar de MENOR caída a MAYOR caída
+                })
+                .slice(0, 5);
+
+            let htmlSafe = '';
+            if (safeStrats.length === 0) {
+                htmlSafe = '<div class="card" style="grid-column: 1/-1; text-align: center; color: var(--danger); padding: 2rem;">El casino te barrió en esta sesión. Ninguna estrategia logró salir en ganancias (S/ 0.00+).</div>';
+            } else {
+                safeStrats.forEach((r, index) => {
+                    htmlSafe += `
+                    <div class="card highlight-card primary">
+                        <div class="card-title">🛡️ Top #${index+1} Seguro</div>
+                        <div class="stat-value text-success">+S/ ${r.netProfit.toFixed(2)}</div>
+                        <div class="stat-sub" style="font-size: 1.05rem;"><strong>${r.strategy.name}</strong></div>
+                        <div class="stat-sub text-muted" style="margin-top: 10px;">
+                            📉 Riesgo Máx. Sufrido: <strong style="color:var(--primary);">S/ ${r.maxDrawdown.toFixed(2)}</strong><br>
+                            🎯 Win Rate: ${r.winRate.toFixed(1)}%
+                        </div>
+                        <button class="btn btn-outline mt-1" style="width:100%; font-size:0.85rem" onclick="window.showDetail('${r.strategy.id}')">🔍 Ver Detalle y Jugadas</button>
+                    </div>
+                    `;
+                });
+            }
+            document.getElementById('safe-cards-container').innerHTML = htmlSafe;
         };
 
         window.renderRanking = function() {
