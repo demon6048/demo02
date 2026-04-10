@@ -15,9 +15,9 @@
             --primary-hover: #2563eb;
             --accent: #8b5cf6;
             --success: #10b981;
-            --success-bg: rgba(16, 185, 129, 0.1);
+            --success-bg: rgba(16, 185, 129, 0.15);
             --danger: #ef4444;
-            --danger-bg: rgba(239, 68, 68, 0.1);
+            --danger-bg: rgba(239, 68, 68, 0.15);
             --warning: #f59e0b;
             --border: #334155;
             --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -167,13 +167,15 @@
 
         /* Sequence Display */
         .sequence-display { 
-            display: flex; flex-wrap: wrap; gap: 5px; max-height: 200px; overflow-y: auto; 
+            display: flex; flex-wrap: wrap; gap: 5px; max-height: 300px; overflow-y: auto; 
             padding: 10px; background: var(--bg-base); border-radius: 6px; border: 1px solid var(--border);
         }
         .dice-tag {
             background: var(--bg-panel); border: 1px solid var(--border);
             padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9rem;
+            transition: all 0.2s; cursor: default;
         }
+        .dice-tag:hover { transform: scale(1.1); z-index: 10; position: relative; }
         .dice-tag.seven { border-color: var(--danger); color: #fca5a5; }
 
         /* Loader */
@@ -206,8 +208,8 @@
             <span class="logo-icon">🎲</span> Craps Lab Pro
         </div>
         <div style="padding: 0 1.5rem 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; display: flex; flex-direction: column; gap: 5px;">
-            <span>🟢 Conectado a la nube</span>
-            <span style="font-family: monospace;">Usuario: <span id="user-uid-display">Conectando...</span></span>
+            <span id="cloud-status-indicator">⚪ Esperando Nube...</span>
+            <span style="font-family: monospace;">Usuario: <span id="user-uid-display">Local</span></span>
         </div>
         <div class="nav-item active" onclick="window.switchTab('input')">📝 Historial de Tiradas</div>
         <div class="nav-item" onclick="window.switchTab('config')">⚙️ Configuración</div>
@@ -243,6 +245,14 @@
                         <button class="btn btn-outline" onclick="window.loadExample()">Cargar Ejemplo</button>
                         <button class="btn btn-danger" onclick="window.clearInput()">Limpiar</button>
                     </div>
+
+                    <div class="mt-2 p-4" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <h3>🚀 Motor de Búsqueda Masivo</h3>
+                        <p style="font-size: 0.9rem;">Prueba +250 combinaciones a la vez y guarda la mejor en la nube para estadísticas históricas.</p>
+                        <button class="btn btn-accent" style="width: 100%;" onclick="window.runFullAnalysis()" id="btn-run-analysis">
+                            Buscar Mejor Estrategia Automáticamente
+                        </button>
+                    </div>
                 </div>
 
                 <div class="card">
@@ -254,20 +264,35 @@
                         <span class="text-muted">Procesa los datos para ver la secuencia...</span>
                     </div>
                     
-                    <div class="mt-2 p-4" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
-                        <h3>🚀 Motor de Búsqueda</h3>
-                        <p style="font-size: 0.9rem;">Prueba todas las combinaciones y guarda los resultados en la nube para estadísticas históricas.</p>
-                        <button class="btn btn-accent" style="width: 100%;" onclick="window.runFullAnalysis()" id="btn-run-analysis" disabled>
-                            Buscar Mejor Estrategia Automáticamente
-                        </button>
+                    <!-- NUEVA HERRAMIENTA: VISUALIZADOR TÉRMICO -->
+                    <div class="mt-2 p-4" style="background: rgba(139, 92, 246, 0.1); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                        <h3 style="color: var(--accent);">🎯 Probar y Visualizar Estrategia Específica</h3>
+                        <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Elige una estrategia para "pintar" tus resultados arriba. <span style="color:var(--success);">Verde = Ganancia</span>, <span style="color:var(--danger);">Rojo = Pérdida</span>.</p>
+                        <div class="form-group mb-1">
+                            <select id="manual-strategy-select" style="width: 100%; font-size: 0.95rem; background: var(--bg-panel);">
+                                <option value="">Cargando estrategias...</option>
+                            </select>
+                        </div>
+                        <div class="grid-2">
+                            <button class="btn btn-outline" style="border-color: var(--accent); color: var(--text-main);" onclick="window.visualizeStrategy()" id="btn-visualize-single">
+                                🎨 Pintar Secuencia
+                            </button>
+                            <button class="btn btn-accent" onclick="window.simulateSingleStrategy()" id="btn-run-single">
+                                🔍 Ver Detalle Completo
+                            </button>
+                        </div>
+                        <div id="visualizer-summary" class="mt-1" style="display:none; font-size: 0.95rem; border-top: 1px dashed rgba(139, 92, 246, 0.5); padding-top: 10px;">
+                            <!-- Summary injected here -->
+                        </div>
                     </div>
+
                 </div>
             </div>
 
             <!-- SECCIÓN DE HISTORIAL DE SECUENCIAS -->
             <div class="card mt-2" style="border-left: 4px solid var(--accent);">
                 <h2>☁️ Mis Secuencias Guardadas en la Nube</h2>
-                <p style="font-size: 0.9rem;">Cada vez que analizas una secuencia, los números exactos se guardan aquí. Puedes volver a cargar tus jugadas pasadas con un solo clic.</p>
+                <p style="font-size: 0.9rem;">Cada vez que analizas una secuencia con el Motor Masivo, se guarda aquí. Puedes volver a cargar tus jugadas pasadas.</p>
                 <div class="table-container" style="max-height: 250px;">
                     <table style="width: 100%; text-align: left;">
                         <thead>
@@ -280,7 +305,7 @@
                             </tr>
                         </thead>
                         <tbody id="saved-sequences-body">
-                            <tr><td colspan="5" class="text-muted" style="text-align:center;">Sincronizando secuencias con la nube...</td></tr>
+                            <tr><td colspan="5" class="text-muted" style="text-align:center;">Nube no sincronizada. Analiza una secuencia primero.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -360,7 +385,7 @@
                             <input type="number" id="cfg-pay7" value="4">
                         </div>
                     </div>
-                    <button class="btn btn-outline mt-1" onclick="window.saveConfig()">Guardar Configuración en la Nube</button>
+                    <button class="btn btn-outline mt-1" onclick="window.saveConfig()">Guardar Configuración</button>
                 </div>
             </div>
         </div>
@@ -480,7 +505,7 @@
                 <h1>Historial y Estadísticas Globales ☁️</h1>
                 <button class="btn btn-danger" onclick="window.promptClearHistory()">🗑️ Borrar Historial en la Nube</button>
             </div>
-            <p>Aquí se acumulan los resultados de <strong>todas las simulaciones</strong> que has realizado en la nube. Te ayuda a descubrir cuál estrategia es la más consistente y rentable a lo largo de múltiples horas de juego y diferentes secuencias de dados.</p>
+            <p>Aquí se acumulan los resultados de <strong>todas las simulaciones masivas</strong> que has realizado en la nube. Te ayuda a descubrir cuál estrategia es la más consistente a largo plazo.</p>
             
             <div class="grid-3 mb-1" id="global-summary-cards">
                 <!-- injected -->
@@ -524,102 +549,45 @@
     <div id="loader">
         <div class="spinner"></div>
         <h2 class="mt-1" style="color:white;">Simulando Estrategias...</h2>
-        <p style="color:var(--text-muted);">Calculando y sincronizando con la nube...</p>
+        <p style="color:var(--text-muted);">Calculando algoritmos (No cierres la página)...</p>
     </div>
 
     <div id="toast-container"></div>
 
-    <!-- MAIN FIREBASE MODULAR SCRIPT -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- SCRIPT 1: LOGICA MATEMÁTICA Y LOCAL (Funciona 100% sin internet y sin bloqueos) -->
+    <script>
+        // Variables Core Seguras
+        window.validSequence = [];
+        window.simulationResults = [];
+        window.currentDetailedResult = null;
+        window.currentSort = { column: 'netProfit', asc: false };
+        window.cloudSessions = [];
 
-        // --- GLOBAL VARIABLES ---
-        let app, auth, db, currentUser;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'craps-lab-pro-app';
-        
-        // Tu configuración personal de Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyBBe8yh9Q7U6E4K9owKPtCPjWBZ8E7-cFE",
-            authDomain: "craps-197ad.firebaseapp.com",
-            projectId: "craps-197ad",
-            storageBucket: "craps-197ad.firebasestorage.app",
-            messagingSenderId: "10940191891",
-            appId: "1:10940191891:web:bec4739038a8b933376966",
-            measurementId: "G-T5WMDFJE2G"
-        };
-
-        let rawHistory = [];
-        let validSequence = [];
-        let simulationResults = [];
-        let currentDetailedResult = null;
-        let currentSort = { column: 'netProfit', asc: false };
-        let cloudSessions = [];
-
-        // --- DEFAULTS ---
-        const config = {
+        window.config = {
             bankroll: 200, baseBet: 2.5, targetProfit: 100, stopLoss: 50, useLimits: false, maxBetLimit: 15000,
             payouts: { place68: 1.1667, place59: 1.4, place410: 1.8, field2: 2, field12: 2, any7: 4, pass: 1, dontpass: 1 }
         };
 
-        const BASE_CHIPS = [2.5, 5, 10, 20, 40, 50, 100];
-        
-        // --- FIREBASE INITIALIZATION ---
-        async function startApp() {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+        // Ganchos para la Nube (Empiezan vacíos, se llenan si Firebase carga)
+        window.cloudHooks = {
+            saveSession: async () => {},
+            saveSequence: async () => {},
+            executeClear: async () => {}
+        };
 
-                // Forzar persistencia local si el navegador lo permite
-                await setPersistence(auth, browserLocalPersistence).catch(() => console.warn("Persistencia local no disponible en este entorno."));
-
-                // Authentication Protocol con Fallback
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    try {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } catch (tokenError) {
-                        console.warn("Token ignorado. Iniciando modo Anónimo...");
-                        await signInAnonymously(auth);
-                    }
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                onAuthStateChanged(auth, async (user) => {
-                    currentUser = user;
-                    if(user) {
-                        document.getElementById('user-uid-display').innerText = user.uid.substring(0, 6) + '...';
-                        await loadCloudConfig();
-                        listenToGlobalHistory();
-                    } else {
-                        document.getElementById('user-uid-display').innerText = "Desconectado";
-                    }
-                });
-            } catch (err) {
-                console.error("Firebase init failed:", err);
-                window.showToast("Error conectando a la base de datos.", "error");
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", startApp);
-
-        // --- TOASTS & MODALS ---
+        // UI Básica
         window.showToast = function(msg, type='success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = 'toast';
             if(type === 'error') toast.style.borderLeftColor = 'var(--danger)';
+            else if (type === 'warning') toast.style.borderLeftColor = 'var(--warning)';
             toast.innerText = msg;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 4000);
         };
-        
         window.openModal = (id) => document.getElementById(id).classList.add('active');
         window.closeModal = (id) => document.getElementById(id).classList.remove('active');
-
-        // --- UI NAVIGATION ---
         window.switchTab = function(tabId) {
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -628,235 +596,7 @@
             if(navEl) { navEl.style.display = 'flex'; navEl.classList.add('active'); }
         };
 
-        // --- CLOUD DB OPERATIONS ---
-        async function loadCloudConfig() {
-            if(!currentUser) return;
-            try {
-                const configRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'config');
-                const configSnap = await getDoc(configRef);
-                if(configSnap.exists()) {
-                    Object.assign(config, configSnap.data());
-                    updateUIFromConfig();
-                }
-
-                const seqRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'last_sequence');
-                const seqSnap = await getDoc(seqRef);
-                if(seqSnap.exists() && seqSnap.data().sequence) {
-                    document.getElementById('rawInput').value = seqSnap.data().sequence;
-                    window.processInput(false); 
-                }
-            } catch (e) {
-                console.warn("Could not load cloud config");
-            }
-        }
-
-        window.saveConfig = async function() {
-            if(!currentUser) return;
-            config.bankroll = parseFloat(document.getElementById('cfg-bankroll').value);
-            config.baseBet = parseFloat(document.getElementById('cfg-basebet').value);
-            config.targetProfit = parseFloat(document.getElementById('cfg-target').value);
-            config.stopLoss = parseFloat(document.getElementById('cfg-stoploss').value);
-            config.useLimits = document.getElementById('cfg-use-limits').checked;
-            config.maxBetLimit = parseFloat(document.getElementById('cfg-maxbet').value);
-            config.payouts.place68 = parseFloat(document.getElementById('cfg-pay68').value);
-            config.payouts.place59 = parseFloat(document.getElementById('cfg-pay59').value);
-            config.payouts.place410 = parseFloat(document.getElementById('cfg-pay410').value);
-            config.payouts.field2 = parseFloat(document.getElementById('cfg-field212').value);
-            config.payouts.field12 = config.payouts.field2;
-            config.payouts.any7 = parseFloat(document.getElementById('cfg-pay7').value);
-            
-            try {
-                await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'config'), config);
-                window.showToast("Configuración guardada en la Nube.");
-            } catch(e) { window.showToast("Error guardando configuración.", "error"); }
-        };
-
-        function updateUIFromConfig() {
-            document.getElementById('cfg-bankroll').value = config.bankroll;
-            document.getElementById('cfg-basebet').value = config.baseBet;
-            document.getElementById('cfg-target').value = config.targetProfit;
-            document.getElementById('cfg-stoploss').value = config.stopLoss;
-            document.getElementById('cfg-use-limits').checked = config.useLimits || false;
-            document.getElementById('cfg-maxbet').value = config.maxBetLimit || 15000;
-            document.getElementById('cfg-pay68').value = config.payouts.place68;
-            document.getElementById('cfg-pay59').value = config.payouts.place59;
-            document.getElementById('cfg-pay410').value = config.payouts.place410;
-            document.getElementById('cfg-field212').value = config.payouts.field2;
-            document.getElementById('cfg-pay7').value = config.payouts.any7;
-        }
-
-        // --- HISTORY & AGGREGATION LOGIC ---
-        function listenToGlobalHistory() {
-            if(!currentUser) return;
-            const historyRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'craps_sessions');
-            
-            onSnapshot(historyRef, (snapshot) => {
-                cloudSessions = [];
-                snapshot.forEach(d => cloudSessions.push({ id: d.id, ...d.data() }));
-                
-                document.getElementById('global-badge').innerText = cloudSessions.length;
-                processGlobalHistory(cloudSessions);
-                renderSavedSequences(cloudSessions);
-            }, (err) => {
-                console.error("Error leyendo Firebase:", err);
-                window.showToast("Error leyendo la nube. Verifica Firebase Rules.", "error");
-            });
-        }
-
-        async function saveSessionToCloud(results) {
-            if(!currentUser || results.length === 0) return;
-            try {
-                const bestStrategy = results[0];
-                const sessionData = {
-                    timestamp: Date.now(),
-                    rollsCount: validSequence.length,
-                    sequence: validSequence.join(','), // <-- AHORA SE GUARDA LA SECUENCIA EXACTA
-                    bestStrategyId: bestStrategy.strategy.id,
-                    bestStrategyName: bestStrategy.strategy.name,
-                    bestStrategyProfit: bestStrategy.netProfit,
-                    strategies: results.slice(0, 50).map(r => ({ // Save top 50 strictly to save space
-                        id: r.strategy.id,
-                        name: r.strategy.name,
-                        netProfit: r.netProfit,
-                        winRate: r.winRate
-                    }))
-                };
-                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'craps_sessions'), sessionData);
-                window.showToast("Sesión y Secuencia guardadas en la Nube.");
-            } catch(e) { console.error("Error saving session", e); }
-        }
-
-        function renderSavedSequences(sessions) {
-            const tbody = document.getElementById('saved-sequences-body');
-            tbody.innerHTML = '';
-            if(sessions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-muted" style="text-align:center; padding: 2rem;">Aún no tienes secuencias guardadas. Analiza unos números para guardar tu primera sesión.</td></tr>';
-                return;
-            }
-
-            // Ordenar de la más reciente a la más antigua
-            const sorted = [...sessions].sort((a,b) => b.timestamp - a.timestamp);
-
-            sorted.forEach(s => {
-                const dateStr = new Date(s.timestamp).toLocaleString();
-                const seqPreview = s.sequence ? (s.sequence.length > 25 ? s.sequence.substring(0, 25) + '...' : s.sequence) : 'Sin datos';
-                const bestName = s.bestStrategyName || 'Desconocida';
-                const profit = s.bestStrategyProfit !== undefined ? s.bestStrategyProfit : 0;
-                const profitClass = profit >= 0 ? 'text-success' : 'text-danger';
-                const profitText = profit >= 0 ? `(+S/ ${profit.toFixed(2)})` : `(-S/ ${Math.abs(profit).toFixed(2)})`;
-                
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${dateStr}</td>
-                        <td>${s.rollsCount || 0}</td>
-                        <td style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);" title="${s.sequence || ''}">${seqPreview}</td>
-                        <td class="${profitClass}" style="font-weight: 500;">${bestName} <br><span style="font-size:0.8rem">${profitText}</span></td>
-                        <td><button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.85rem;" onclick="window.reloadSequence('${s.id}')">🔄 Cargar</button></td>
-                    </tr>
-                `;
-            });
-        }
-
-        window.reloadSequence = function(sessionId) {
-            const session = cloudSessions.find(s => s.id === sessionId);
-            if(session && session.sequence) {
-                document.getElementById('rawInput').value = session.sequence;
-                window.processInput(false); // Falso para no auto-sobrescribir el registro temporal
-                window.showToast("Secuencia cargada correctamente.");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-                window.showToast("Esta sesión antigua no tiene la secuencia guardada.", "error");
-            }
-        };
-
-        function processGlobalHistory(sessions) {
-            let globalAggregated = {};
-            let totalRollsAllTime = 0;
-            
-            sessions.forEach(session => {
-                totalRollsAllTime += session.rollsCount || 0;
-                session.strategies.forEach(s => {
-                    if(!globalAggregated[s.id]) {
-                        globalAggregated[s.id] = { id: s.id, name: s.name, totalNetProfit: 0, timesFirst: 0, sumWinRate: 0, count: 0 };
-                    }
-                    globalAggregated[s.id].totalNetProfit += s.netProfit;
-                    globalAggregated[s.id].sumWinRate += s.winRate;
-                    globalAggregated[s.id].count += 1;
-                    
-                    if (session.bestStrategyId === s.id) {
-                        globalAggregated[s.id].timesFirst += 1;
-                    }
-                });
-            });
-
-            const ranking = Object.values(globalAggregated).map(s => ({
-                ...s,
-                avgWinRate: s.sumWinRate / s.count
-            })).sort((a, b) => b.totalNetProfit - a.totalNetProfit);
-
-            renderGlobalHistory(ranking, sessions.length, totalRollsAllTime);
-        }
-
-        function renderGlobalHistory(ranking, sessionCount, totalRolls) {
-            const bestAllTime = ranking.length > 0 ? ranking[0] : null;
-            
-            document.getElementById('global-summary-cards').innerHTML = `
-                <div class="card">
-                    <div class="card-title">Sesiones Jugadas</div>
-                    <div class="stat-value text-main">${sessionCount}</div>
-                    <div class="stat-sub">Simulaciones guardadas</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Tiradas Analizadas</div>
-                    <div class="stat-value text-accent">${totalRolls}</div>
-                    <div class="stat-sub">Volumen total de datos</div>
-                </div>
-                <div class="card highlight-card success">
-                    <div class="card-title">👑 Mejor de Todos los Tiempos</div>
-                    <div class="stat-value text-success">${bestAllTime ? '+S/'+bestAllTime.totalNetProfit.toFixed(2) : 'N/A'}</div>
-                    <div class="stat-sub"><strong>${bestAllTime ? bestAllTime.name : 'Ninguna'}</strong></div>
-                </div>
-            `;
-
-            const tbody = document.getElementById('global-ranking-body');
-            tbody.innerHTML = '';
-            ranking.forEach((r, i) => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>#${i+1}</td>
-                        <td style="font-weight:bold;">${r.name}</td>
-                        <td class="${r.totalNetProfit >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">
-                            ${r.totalNetProfit >= 0 ? '+' : ''}S/ ${r.totalNetProfit.toFixed(2)}
-                        </td>
-                        <td>${r.avgWinRate.toFixed(1)}%</td>
-                        <td><span class="badge" style="background: ${r.timesFirst > 0 ? 'var(--warning)' : 'var(--bg-panel)'}; color: ${r.timesFirst > 0 ? '#000' : 'var(--text-muted)'}">${r.timesFirst} veces</span></td>
-                    </tr>
-                `;
-            });
-        }
-
-        window.promptClearHistory = () => window.openModal('confirm-modal');
-        
-        window.executeClearHistory = async () => {
-            window.closeModal('confirm-modal');
-            if(!currentUser) return;
-            window.showToast("Borrando historial de la nube...", "warning");
-            
-            try {
-                const sessionsRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'craps_sessions');
-                const snapshot = await getDocs(sessionsRef);
-                const deletePromises = [];
-                snapshot.forEach(docSnap => {
-                    deletePromises.push(deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'craps_sessions', docSnap.id)));
-                });
-                await Promise.all(deletePromises);
-                window.showToast("Historial borrado exitosamente.", "success");
-            } catch(e) {
-                window.showToast("Error borrando el historial.", "error");
-            }
-        };
-
-        // --- INPUT & PARSING ---
+        // Inputs
         window.loadExample = function() {
             document.getElementById('rawInput').value = "6,8,7, 4,10,9,9,5, 7, 2,3,12,11, 6,6,6,8, 7, 5,4,8,9,10,7, 7,7, 4,5,6,8";
             window.processInput();
@@ -864,106 +604,54 @@
 
         window.clearInput = function() {
             document.getElementById('rawInput').value = '';
-            validSequence = [];
+            window.validSequence = [];
             document.getElementById('totalRolls').innerText = '0';
             document.getElementById('cleanSequenceDisplay').innerHTML = '<span class="text-muted">Procesa los datos para ver la secuencia...</span>';
-            document.getElementById('btn-run-analysis').disabled = true;
+            document.getElementById('visualizer-summary').style.display = 'none';
         };
 
-        window.processInput = async function(saveToCloud = true) {
+        window.processInput = function(saveToCloud = true) {
             const raw = document.getElementById('rawInput').value;
             const numbers = raw.split(/[^\d]+/).filter(Boolean).map(Number);
-            validSequence = numbers.filter(n => n >= 2 && n <= 12);
+            window.validSequence = numbers.filter(n => n >= 2 && n <= 12);
             
-            document.getElementById('totalRolls').innerText = validSequence.length;
+            document.getElementById('totalRolls').innerText = window.validSequence.length;
             const display = document.getElementById('cleanSequenceDisplay');
             display.innerHTML = '';
             
-            if(validSequence.length === 0) {
-                display.innerHTML = '<span class="text-danger">No se encontraron tiradas válidas (números entre 2 y 12).</span>';
-                document.getElementById('btn-run-analysis').disabled = true;
-                return;
+            if(window.validSequence.length === 0) {
+                display.innerHTML = '<span class="text-danger">No hay secuencia válida cargada.</span>';
+                return false;
             }
 
-            if(saveToCloud && currentUser) {
-                setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'last_sequence'), { sequence: validSequence.join(',') });
+            if(saveToCloud && window.cloudHooks && window.cloudHooks.saveSequence) {
+                window.cloudHooks.saveSequence(window.validSequence.join(','));
             }
 
-            document.getElementById('btn-run-analysis').disabled = false;
-            const renderLimit = Math.min(validSequence.length, 200);
+            const renderLimit = Math.min(window.validSequence.length, 500);
             for(let i=0; i<renderLimit; i++) {
                 const span = document.createElement('span');
-                span.className = `dice-tag ${validSequence[i] === 7 ? 'seven' : ''}`;
-                span.innerText = validSequence[i];
+                span.className = `dice-tag ${window.validSequence[i] === 7 ? 'seven' : ''}`;
+                span.innerText = window.validSequence[i];
                 display.appendChild(span);
             }
-            if(validSequence.length > 200) {
+            if(window.validSequence.length > 500) {
                 const more = document.createElement('span');
                 more.className = 'text-muted';
-                more.innerText = `... y ${validSequence.length - 200} más`;
+                more.innerText = `... y ${window.validSequence.length - 500} más`;
                 display.appendChild(more);
             }
 
-            updateAnalysisTab();
+            window.updateAnalysisTab();
+            return true;
         };
 
-        function updateAnalysisTab() {
-            if(validSequence.length === 0) return;
-            const counts = {2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0};
-            let sevens = 0; let fieldRolls = 0;
-            validSequence.forEach(n => {
-                counts[n]++;
-                if(n === 7) sevens++;
-                if([2,3,4,9,10,11,12].includes(n)) fieldRolls++;
-            });
-
-            document.getElementById('analysis-summary-cards').innerHTML = `
-                <div class="card highlight-card accent">
-                    <div class="card-title">Apariciones del 7</div>
-                    <div class="stat-value">${sevens}</div>
-                    <div class="stat-sub text-muted">${((sevens/validSequence.length)*100).toFixed(1)}%</div>
-                </div>
-                <div class="card highlight-card success">
-                    <div class="card-title">Tiradas Field</div>
-                    <div class="stat-value">${fieldRolls}</div>
-                    <div class="stat-sub text-muted">${((fieldRolls/validSequence.length)*100).toFixed(1)}%</div>
-                </div>
-                <div class="card highlight-card danger">
-                    <div class="card-title">Promedio de Tiradas (PSO)</div>
-                    <div class="stat-value">${sevens > 0 ? (validSequence.length / sevens).toFixed(1) : validSequence.length}</div>
-                    <div class="stat-sub text-muted">Tiradas entre cada 7</div>
-                </div>
-            `;
-
-            document.getElementById('risk-metrics-table').innerHTML = `
-                <tr><td>Racha más larga sin 7</td><td class="text-success" style="font-weight:bold;">${longestStreakWithout(7)} tiradas</td></tr>
-                <tr><td>Racha más larga de Field</td><td class="text-success" style="font-weight:bold;">${longestStreakOf([2,3,4,9,10,11,12])} tiradas</td></tr>
-                <tr><td>Racha más larga de No-Field</td><td class="text-danger" style="font-weight:bold;">${longestStreakOf([5,6,7,8])} tiradas</td></tr>
-            `;
-        }
-
-        function longestStreakWithout(num) {
-            let max = 0, current = 0;
-            for(let n of validSequence) {
-                if(n !== num) { current++; max = Math.max(max, current); } else current = 0;
-            }
-            return max;
-        }
-
-        function longestStreakOf(arr) {
-            let max = 0, current = 0;
-            for(let n of validSequence) {
-                if(arr.includes(n)) { current++; max = Math.max(max, current); } else current = 0;
-            }
-            return max;
-        }
-
-        // --- ENGINE ---
-        function generateAllStrategies() {
+        // Engine Lógico Principal
+        window.generateAllStrategies = function() {
             let strats = [];
             const progressions = ['flat', 'martingale', 'fibonacci', 'dalembert', 'paroli'];
             const getProgDesc = (prog) => {
-                const limitWarning = `<br><span class="text-warning" style="font-size:0.85rem">⚠️ Límite: S/ ${config.maxBetLimit}.</span>`;
+                const limitWarning = `<br><span class="text-warning" style="font-size:0.85rem">⚠️ Límite: S/ ${window.config.maxBetLimit}.</span>`;
                 if(prog === 'flat') return '<strong>Apuesta plana:</strong> Mantienes el mismo monto en cada tiro.';
                 if(prog === 'martingale') return '<strong>Martingala:</strong> Doblas al perder, regresas base al ganar.' + limitWarning;
                 if(prog === 'fibonacci') return '<strong>Fibonacci:</strong> Secuencia suave al perder, retrocedes dos al ganar.' + limitWarning;
@@ -977,8 +665,7 @@
                 strats.push({ id: `dontpass_${prog}`, name: `Don't Pass (${prog})`, type: 'dontpass', progression: prog, desc: `Don't Pass.<br><br>${getProgDesc(prog)}` });
                 strats.push({ id: `field_${prog}`, name: `Field (${prog})`, type: 'field', progression: prog, desc: `Caja Field (2,3,4,9,10,11,12).<br><br>${getProgDesc(prog)}` });
                 
-                // Nuevas: Apuestas de un solo tiro (Prop Bets)
-                strats.push({ id: `any7_${prog}`, name: `Cualquier 7 (${prog})`, type: 'single', nums: [7], payout: config.payouts.any7, progression: prog, desc: `Apuesta directa al 7. Paga ${config.payouts.any7} a 1.<br><br>${getProgDesc(prog)}` });
+                strats.push({ id: `any7_${prog}`, name: `Cualquier 7 (${prog})`, type: 'single', nums: [7], payout: window.config.payouts.any7, progression: prog, desc: `Apuesta directa al 7. Paga ${window.config.payouts.any7} a 1.<br><br>${getProgDesc(prog)}` });
                 strats.push({ id: `anycraps_${prog}`, name: `Any Craps (2,3,12) (${prog})`, type: 'single', nums: [2,3,12], payout: 7, progression: prog, desc: `Apuesta a Craps (2, 3 o 12). Paga 7 a 1.<br><br>${getProgDesc(prog)}` });
                 strats.push({ id: `solo2_${prog}`, name: `Solo al 2 (${prog})`, type: 'single', nums: [2], payout: 30, progression: prog, desc: `Apuesta exacta al 2. Paga 30 a 1.<br><br>${getProgDesc(prog)}` });
                 strats.push({ id: `solo12_${prog}`, name: `Solo al 12 (${prog})`, type: 'single', nums: [12], payout: 30, progression: prog, desc: `Apuesta exacta al 12. Paga 30 a 1.<br><br>${getProgDesc(prog)}` });
@@ -1010,57 +697,54 @@
                 });
             });
 
-            // Auto-generar TODOS los pares posibles (2 números)
             for(let i=0; i<placeNums.length; i++) {
                 for(let j=i+1; j<placeNums.length; j++) {
                     const n1 = placeNums[i], n2 = placeNums[j];
-                    if((n1==6&&n2==8) || (n1==5&&n2==9) || (n1==4&&n2==10)) continue; // ya existen como populares
+                    if((n1==6&&n2==8) || (n1==5&&n2==9) || (n1==4&&n2==10)) continue; 
                     progressions.forEach(prog => {
                         strats.push({ id: `auto_combo_${n1}_${n2}_${prog}`, name: `Sitio ${n1} y ${n2} (${prog})`, type: 'place', nums: [n1, n2], progression: prog, desc: `Cobertura a ${n1} y ${n2}. <br><br>${getProgDesc(prog)}` });
                     });
                 }
             }
 
-            // Auto-generar TODAS las tríadas posibles (3 números)
             for(let i=0; i<placeNums.length; i++) {
                 for(let j=i+1; j<placeNums.length; j++) {
                     for(let k=j+1; k<placeNums.length; k++) {
                         const n1 = placeNums[i], n2 = placeNums[j], n3 = placeNums[k];
-                        if(n1==5 && n2==6 && n3==8) continue; // Iron Cross base
+                        if(n1==5 && n2==6 && n3==8) continue; 
                         progressions.forEach(prog => {
                             strats.push({ id: `auto_combo_${n1}_${n2}_${n3}_${prog}`, name: `Sitio ${n1}, ${n2}, ${n3} (${prog})`, type: 'place', nums: [n1, n2, n3], progression: prog, desc: `Cobertura múltiple a ${n1}, ${n2} y ${n3}. <br><br>${getProgDesc(prog)}` });
                         });
                     }
                 }
             }
-
             return strats;
-        }
+        };
 
-        function evaluateRoll(roll, strategyDef, context) {
+        window.evaluateRoll = function(roll, strategyDef, context) {
             const { type, nums } = strategyDef;
+            const cf = window.config.payouts;
             
-            // Evaluador para Apuestas Únicas (Prop Bets)
             if(type === 'single') {
                 if(nums.includes(roll)) return { stateChange: 'win', profitUnits: strategyDef.payout, note: `Acertó tiro único (${roll})` };
                 return { stateChange: 'loss', profitUnits: 0, note: `Perdió tiro único (${roll})` };
             }
 
             if(type === 'ironcross') {
-                if(roll === 5) return { stateChange: 'win', profitUnits: config.payouts.place59 - 1, note: `Sitio 5 gana, Field pierde` };
-                if(roll === 6 || roll === 8) return { stateChange: 'win', profitUnits: config.payouts.place68 - 1, note: `Sitio ${roll} gana, Field pierde` };
+                if(roll === 5) return { stateChange: 'win', profitUnits: cf.place59 - 1, note: `Sitio 5 gana, Field pierde` };
+                if(roll === 6 || roll === 8) return { stateChange: 'win', profitUnits: cf.place68 - 1, note: `Sitio ${roll} gana, Field pierde` };
                 if([3,4,9,10,11].includes(roll)) return { stateChange: 'win', profitUnits: 1, note: `Field Win (${roll})` };
-                if(roll === 2) return { stateChange: 'win', profitUnits: config.payouts.field2, note: `Field x2 (${roll})` };
-                if(roll === 12) return { stateChange: 'win', profitUnits: config.payouts.field12, note: `Field x${config.payouts.field12} (${roll})` };
+                if(roll === 2) return { stateChange: 'win', profitUnits: cf.field2, note: `Field x2 (${roll})` };
+                if(roll === 12) return { stateChange: 'win', profitUnits: cf.field12, note: `Field x${cf.field12} (${roll})` };
                 if(roll === 7) return { stateChange: 'loss', profitUnits: 0, note: '7 Out - Pierde todo (4x)' };
                 return { stateChange: 'none', profitUnits: 0, note: '?' }; 
             }
             if(type === 'place') {
                 if(nums.includes(roll)) {
                     let mult = 1;
-                    if(roll === 6 || roll === 8) mult = config.payouts.place68;
-                    else if(roll === 5 || roll === 9) mult = config.payouts.place59;
-                    else if(roll === 4 || roll === 10) mult = config.payouts.place410;
+                    if(roll === 6 || roll === 8) mult = cf.place68;
+                    else if(roll === 5 || roll === 9) mult = cf.place59;
+                    else if(roll === 4 || roll === 10) mult = cf.place410;
                     return { stateChange: 'win', profitUnits: mult, note: `Acertó ${roll}` };
                 }
                 if(roll === 7) return { stateChange: 'loss', profitUnits: 0, note: '7 Out' };
@@ -1068,8 +752,8 @@
             }
             if(type === 'field') {
                 if([3,4,9,10,11].includes(roll)) return { stateChange: 'win', profitUnits: 1, note: `Field Win (${roll})` };
-                if(roll === 2) return { stateChange: 'win', profitUnits: config.payouts.field2, note: 'Field x2 (2)' };
-                if(roll === 12) return { stateChange: 'win', profitUnits: config.payouts.field12, note: `Field x${config.payouts.field12} (12)` };
+                if(roll === 2) return { stateChange: 'win', profitUnits: cf.field2, note: 'Field x2 (2)' };
+                if(roll === 12) return { stateChange: 'win', profitUnits: cf.field12, note: `Field x${cf.field12} (12)` };
                 return { stateChange: 'loss', profitUnits: 0, note: `Field pierde (${roll})` };
             }
             if(type === 'pass') {
@@ -1096,10 +780,10 @@
                 }
             }
             return { stateChange: 'none', profitUnits: 0, note: '?' };
-        }
+        };
 
-        function simulateStrategy(strategyDef, sequence) {
-            let bankroll = config.bankroll, initialBankroll = config.bankroll, maxBankroll = bankroll, minBankroll = bankroll;
+        window.simulateStrategy = function(strategyDef, sequence) {
+            let bankroll = window.config.bankroll, initialBankroll = window.config.bankroll, maxBankroll = bankroll, minBankroll = bankroll;
             let wins = 0, losses = 0, pushes = 0, currentUnits = 1, fiboIndex = 0;
             const fiboSeq = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597];
             let paroliWins = 0, status = 'Activa', logs = [], context = { point: null };
@@ -1110,33 +794,27 @@
 
             for(let i = 0; i < sequence.length; i++) {
                 const roll = sequence[i];
-                
-                let unitBet = currentUnits * config.baseBet; 
+                let unitBet = currentUnits * window.config.baseBet; 
                 let rawBet = unitBet * unitsMultiplier;
-                let totalBetAmount = Math.min(rawBet, config.maxBetLimit, bankroll);
+                let totalBetAmount = Math.min(rawBet, window.config.maxBetLimit, bankroll);
                 
-                // Si la apuesta topa con un límite, reducimos proporcionalmente la apuesta por unidad
-                if (totalBetAmount < rawBet) {
-                    unitBet = totalBetAmount / unitsMultiplier;
-                }
+                if (totalBetAmount < rawBet) unitBet = totalBetAmount / unitsMultiplier;
                 
                 const balanceBefore = bankroll;
 
-                if(bankroll < config.baseBet) { status = 'Quiebra'; break; }
-                if (config.useLimits) {
-                    if(bankroll >= initialBankroll + config.targetProfit) { status = 'Meta Alcanzada'; break; }
-                    if(bankroll <= initialBankroll - config.stopLoss) { status = 'Stop Loss'; break; }
+                if(bankroll < window.config.baseBet) { status = 'Quiebra'; break; }
+                if (window.config.useLimits) {
+                    if(bankroll >= initialBankroll + window.config.targetProfit) { status = 'Meta Alcanzada'; break; }
+                    if(bankroll <= initialBankroll - window.config.stopLoss) { status = 'Stop Loss'; break; }
                 }
 
-                const result = evaluateRoll(roll, strategyDef, context);
+                const result = window.evaluateRoll(roll, strategyDef, context);
                 let netChange = 0, logNoteAdd = '';
 
                 if(result.stateChange === 'win') {
-                    // LA CORRECCIÓN CLAVE: La ganancia se multiplica SÓLO por la unidad ganadora, no por toda la mesa
                     netChange = unitBet * result.profitUnits; 
                     bankroll += netChange; 
                     wins++;
-                    
                     logNoteAdd = ` (+S/ ${netChange.toFixed(2)})`;
                     
                     if(strategyDef.progression === 'flat' || strategyDef.progression === 'martingale') currentUnits = 1;
@@ -1148,7 +826,6 @@
                         else { currentUnits *= 2; logNoteAdd += ` (Paroli Nivel ${paroliWins+1})`; }
                     }
                 } else if(result.stateChange === 'loss') {
-                    // Si pierde (sale un 7), pierde TODAS las unidades en juego
                     netChange = -totalBetAmount; 
                     bankroll += netChange; 
                     losses++;
@@ -1166,7 +843,7 @@
                 logs.push({
                     rollNum: i + 1, dice: roll, bet: result.stateChange !== 'none' ? totalBetAmount : 0,
                     resultType: result.stateChange, balanceBefore: balanceBefore.toFixed(2), balanceAfter: bankroll.toFixed(2),
-                    note: result.note + logNoteAdd + (totalBetAmount === config.maxBetLimit ? ' [MAX BET]' : ''),
+                    note: result.note + logNoteAdd + (totalBetAmount === window.config.maxBetLimit ? ' [MAX BET]' : ''),
                     netChange: netChange
                 });
             }
@@ -1177,35 +854,171 @@
                 winRate: (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0,
                 maxDrawdown: maxBankroll - minBankroll, status, logs
             };
-        }
+        };
 
+        // UI ACTIONS
         window.runFullAnalysis = function() {
-            document.getElementById('cfg-bankroll').value = config.bankroll; // sync just in case
+            if (!window.processInput(false)) {
+                window.showToast("Pega una secuencia de números válida primero.", "warning");
+                return;
+            }
+            
+            document.getElementById('cfg-bankroll').value = window.config.bankroll; 
             const loader = document.getElementById('loader');
             loader.classList.add('active');
             
             setTimeout(async () => {
-                const strategies = generateAllStrategies();
-                simulationResults = [];
-                strategies.forEach(strat => simulationResults.push(simulateStrategy(strat, validSequence)));
-                simulationResults.sort((a, b) => b.netProfit - a.netProfit);
+                try {
+                    const strategies = window.generateAllStrategies();
+                    window.simulationResults = [];
+                    strategies.forEach(strat => window.simulationResults.push(window.simulateStrategy(strat, window.validSequence)));
+                    window.simulationResults.sort((a, b) => b.netProfit - a.netProfit);
 
-                renderDashboard();
-                renderRanking();
-                
-                window.switchTab('dashboard');
-                
-                await saveSessionToCloud(simulationResults);
-                loader.classList.remove('active');
+                    window.renderDashboard();
+                    window.renderRanking();
+                    window.switchTab('dashboard');
+                    
+                    if (window.cloudHooks && window.cloudHooks.saveSession) {
+                        await window.cloudHooks.saveSession(window.simulationResults);
+                    }
+                } catch(err) {
+                    console.error(err);
+                    window.showToast("Error matemático interno: " + err.message, "error");
+                } finally {
+                    loader.classList.remove('active');
+                }
             }, 100);
         };
 
-        function renderDashboard() {
-            if(simulationResults.length === 0) return;
-            const profitable = simulationResults.filter(r => r.netProfit > 0);
-            const bestProfit = simulationResults[0]; 
+        window.visualizeStrategy = function() {
+            if (!window.processInput(false)) { window.showToast("Pega una secuencia válida primero.", "warning"); return; }
+            
+            const stratId = document.getElementById('manual-strategy-select').value;
+            if(!stratId) { window.showToast("Selecciona una estrategia de la lista.", "error"); return; }
+
+            const allStrats = window.generateAllStrategies();
+            const stratDef = allStrats.find(s => s.id === stratId);
+            const result = window.simulateStrategy(stratDef, window.validSequence);
+            
+            const display = document.getElementById('cleanSequenceDisplay');
+            display.innerHTML = '';
+            
+            const renderLimit = Math.min(result.logs.length, 500);
+            for(let i=0; i<renderLimit; i++) {
+                const log = result.logs[i];
+                const span = document.createElement('span');
+                span.className = `dice-tag`;
+                
+                if (log.resultType === 'win') {
+                    span.style.borderColor = 'var(--success)';
+                    span.style.color = 'var(--success)';
+                    span.style.backgroundColor = 'var(--success-bg)';
+                } else if (log.resultType === 'loss') {
+                    span.style.borderColor = 'var(--danger)';
+                    span.style.color = 'var(--danger)';
+                    span.style.backgroundColor = 'var(--danger-bg)';
+                } else if (log.dice === 7) {
+                     span.className += ' seven'; 
+                }
+
+                span.innerText = log.dice;
+                span.title = `Tirada ${log.rollNum}: ${log.note} | Neto: S/ ${log.netChange.toFixed(2)}`;
+                display.appendChild(span);
+            }
+            if(result.logs.length > 500) {
+                const more = document.createElement('span');
+                more.className = 'text-muted';
+                more.innerText = `... y ${result.logs.length - 500} más`;
+                display.appendChild(more);
+            }
+
+            const summary = document.getElementById('visualizer-summary');
+            summary.style.display = 'block';
+            summary.innerHTML = `
+                <strong style="color:var(--text-main);">📊 Resultado de: ${stratDef.name}</strong><br>
+                Ganancia Neta: <strong class="${result.netProfit >= 0 ? 'text-success' : 'text-danger'}">${result.netProfit >= 0 ? '+' : ''}S/ ${result.netProfit.toFixed(2)}</strong> | 
+                Aciertos: <strong class="text-success">${result.wins}</strong> | 
+                Fallos: <strong class="text-danger">${result.losses}</strong>
+            `;
+            window.showToast("Secuencia pintada exitosamente.");
+        };
+
+        window.simulateSingleStrategy = function() {
+            if (!window.processInput(false)) { window.showToast("Pega una secuencia válida primero.", "warning"); return; }
+            
+            const stratId = document.getElementById('manual-strategy-select').value;
+            if(!stratId) { window.showToast("Selecciona una estrategia.", "error"); return; }
+
+            const allStrats = window.generateAllStrategies();
+            const stratDef = allStrats.find(s => s.id === stratId);
+            const result = window.simulateStrategy(stratDef, window.validSequence);
+            
+            const existingIdx = window.simulationResults.findIndex(r => r.strategy.id === stratId);
+            if(existingIdx >= 0) window.simulationResults[existingIdx] = result;
+            else window.simulationResults.push(result);
+            
+            window.showDetail(stratId);
+        };
+
+        // Actualización de Vistas
+        window.initStrategyDropdown = function() {
+            const select = document.getElementById('manual-strategy-select');
+            const allStrats = window.generateAllStrategies();
+            select.innerHTML = '';
+            
+            const categories = {
+                'Apuestas Básicas y Proposiciones': s => ['pass', 'dontpass', 'field', 'single'].includes(s.type),
+                'Sitios Individuales (1 Número)': s => s.type === 'place' && s.nums.length === 1,
+                'Combos Famosos (Sistemas)': s => ['ironcross'].includes(s.type) || (s.type === 'place' && (s.name.includes("Inside") || s.name.includes("Outside") || s.name.includes("Across") || s.name.includes("Pares") || s.name.includes("5 y 9"))),
+                'Pares Generados (2 Números)': s => s.type === 'place' && s.nums.length === 2 && s.id.startsWith("auto_combo"),
+                'Tríadas Generadas (3 Números)': s => s.type === 'place' && s.nums.length === 3 && s.id.startsWith("auto_combo")
+            };
+
+            for(let cat in categories) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = `--- ${cat} ---`;
+                allStrats.filter(categories[cat]).forEach(strat => {
+                    const opt = document.createElement('option');
+                    opt.value = strat.id;
+                    opt.textContent = strat.name;
+                    optgroup.appendChild(opt);
+                });
+                select.appendChild(optgroup);
+            }
+        };
+
+        window.updateAnalysisTab = function() {
+            if(window.validSequence.length === 0) return;
+            const counts = {2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0};
+            let sevens = 0, fieldRolls = 0;
+            window.validSequence.forEach(n => {
+                counts[n]++;
+                if(n === 7) sevens++;
+                if([2,3,4,9,10,11,12].includes(n)) fieldRolls++;
+            });
+
+            document.getElementById('analysis-summary-cards').innerHTML = `
+                <div class="card highlight-card accent"><div class="card-title">Apariciones del 7</div><div class="stat-value">${sevens}</div><div class="stat-sub text-muted">${((sevens/window.validSequence.length)*100).toFixed(1)}%</div></div>
+                <div class="card highlight-card success"><div class="card-title">Tiradas Field</div><div class="stat-value">${fieldRolls}</div><div class="stat-sub text-muted">${((fieldRolls/window.validSequence.length)*100).toFixed(1)}%</div></div>
+                <div class="card highlight-card danger"><div class="card-title">Promedio PSO</div><div class="stat-value">${sevens > 0 ? (window.validSequence.length / sevens).toFixed(1) : window.validSequence.length}</div><div class="stat-sub text-muted">Tiros entre cada 7</div></div>
+            `;
+
+            const longestStreakOf = (arr) => { let max = 0, curr = 0; for(let n of window.validSequence) { if(arr.includes(n)) { curr++; max = Math.max(max, curr); } else curr = 0; } return max; };
+            const longestStreakWithout = (num) => { let max = 0, curr = 0; for(let n of window.validSequence) { if(n !== num) { curr++; max = Math.max(max, curr); } else curr = 0; } return max; };
+
+            document.getElementById('risk-metrics-table').innerHTML = `
+                <tr><td>Racha más larga sin 7</td><td class="text-success" style="font-weight:bold;">${longestStreakWithout(7)} tiradas</td></tr>
+                <tr><td>Racha más larga de Field</td><td class="text-success" style="font-weight:bold;">${longestStreakOf([2,3,4,9,10,11,12])} tiradas</td></tr>
+                <tr><td>Racha más larga de No-Field</td><td class="text-danger" style="font-weight:bold;">${longestStreakOf([5,6,7,8])} tiradas</td></tr>
+            `;
+        };
+
+        window.renderDashboard = function() {
+            if(window.simulationResults.length === 0) return;
+            const profitable = window.simulationResults.filter(r => r.netProfit > 0);
+            const bestProfit = window.simulationResults[0]; 
             let safest = profitable.length > 0 ? [...profitable].sort((a,b) => a.maxDrawdown - b.maxDrawdown)[0] : null;
-            const highWr = [...simulationResults].filter(r => (r.wins+r.losses)>10).sort((a,b) => b.winRate - a.winRate)[0];
+            const highWr = [...window.simulationResults].filter(r => (r.wins+r.losses)>10).sort((a,b) => b.winRate - a.winRate)[0];
 
             document.getElementById('top-cards-container').innerHTML = `
                 <div class="card highlight-card success">
@@ -1227,33 +1040,12 @@
                      ${highWr ? `<button class="btn btn-outline mt-1" style="width:100%; font-size:0.8rem" onclick="window.showDetail('${highWr.strategy.id}')">Ver Detalle</button>` : ''}
                 </div>
             `;
-        }
-
-        window.sortRanking = function(column) {
-            if(currentSort.column === column) currentSort.asc = !currentSort.asc;
-            else { currentSort.column = column; currentSort.asc = false; }
-
-            simulationResults.sort((a, b) => {
-                let valA, valB;
-                switch(column) {
-                    case 'name': valA = a.strategy.name; valB = b.strategy.name; break;
-                    case 'type': valA = a.strategy.type; valB = b.strategy.type; break;
-                    case 'progression': valA = a.strategy.progression; valB = b.strategy.progression; break;
-                    case 'netProfit': valA = a.netProfit; valB = b.netProfit; break;
-                    case 'maxDrawdown': valA = a.maxDrawdown; valB = b.maxDrawdown; break;
-                    case 'winRate': valA = a.winRate; valB = b.winRate; break;
-                    case 'status': valA = a.status; valB = b.status; break;
-                }
-                if(typeof valA === 'string') return currentSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                else return currentSort.asc ? valA - valB : valB - valA;
-            });
-            renderRanking();
         };
 
-        function renderRanking() {
+        window.renderRanking = function() {
             const tbody = document.getElementById('ranking-table-body');
             tbody.innerHTML = '';
-            simulationResults.forEach(r => {
+            window.simulationResults.forEach(r => {
                 let statusBadge = `<span class="bg-success-light">Terminó</span>`;
                 if(r.status === 'Quiebra') statusBadge = `<span class="bg-danger-light">Quebró</span>`;
                 else if(r.status === 'Stop Loss') statusBadge = `<span class="bg-danger-light" style="opacity:0.7">Stop Loss</span>`;
@@ -1272,19 +1064,19 @@
                     </tr>
                 `;
             });
-        }
+        };
 
         window.showDetail = function(strategyId) {
-            currentDetailedResult = simulationResults.find(r => r.strategy.id === strategyId);
-            if(!currentDetailedResult) return;
+            window.currentDetailedResult = window.simulationResults.find(r => r.strategy.id === strategyId);
+            if(!window.currentDetailedResult) return;
 
             window.switchTab('detail');
 
-            const r = currentDetailedResult;
+            const r = window.currentDetailedResult;
             document.getElementById('detail-title').innerText = `Simulación: ${r.strategy.name}`;
             document.getElementById('detail-description').innerHTML = r.strategy.desc || "Estrategia estándar de simulación.";
             document.getElementById('detail-betting-rules').innerHTML = `
-                <strong>💰 Gestión de Capital:</strong> Banca inicial: S/ ${r.initialBankroll.toFixed(2)} | Base configurada: <strong>S/ ${config.baseBet.toFixed(2)}</strong> por unidad.<br>
+                <strong>💰 Gestión de Capital:</strong> Banca inicial: S/ ${r.initialBankroll.toFixed(2)} | Base configurada: <strong>S/ ${window.config.baseBet.toFixed(2)}</strong> por unidad.<br>
             `;
 
             document.getElementById('detail-summary-cards').innerHTML = `
@@ -1312,15 +1104,36 @@
             });
         };
 
+        window.sortRanking = function(column) {
+            if(window.currentSort.column === column) window.currentSort.asc = !window.currentSort.asc;
+            else { window.currentSort.column = column; window.currentSort.asc = false; }
+
+            window.simulationResults.sort((a, b) => {
+                let valA, valB;
+                switch(column) {
+                    case 'name': valA = a.strategy.name; valB = b.strategy.name; break;
+                    case 'type': valA = a.strategy.type; valB = b.strategy.type; break;
+                    case 'progression': valA = a.strategy.progression; valB = b.strategy.progression; break;
+                    case 'netProfit': valA = a.netProfit; valB = b.netProfit; break;
+                    case 'maxDrawdown': valA = a.maxDrawdown; valB = b.maxDrawdown; break;
+                    case 'winRate': valA = a.winRate; valB = b.winRate; break;
+                    case 'status': valA = a.status; valB = b.status; break;
+                }
+                if(typeof valA === 'string') return window.currentSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                else return window.currentSort.asc ? valA - valB : valB - valA;
+            });
+            window.renderRanking();
+        };
+
         window.exportCSV = function(type) {
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
             if(type === 'ranking') {
                 csvContent += "Estrategia,Tipo,Progresion,Ganancia_Neta,Max_Drawdown,Win_Rate,Estado\n";
-                simulationResults.forEach(r => csvContent += `"${r.strategy.name}",${r.strategy.type},${r.strategy.progression},${r.netProfit.toFixed(2)},${r.maxDrawdown.toFixed(2)},${r.winRate.toFixed(2)},${r.status}\n`);
-            } else if(type === 'detail' && currentDetailedResult) {
-                csvContent += `Simulacion: ${currentDetailedResult.strategy.name}\n\n`;
-                csvContent += "Tirada_Num,Dado,Apuesta_Total,Resultado,Saldo_Antes,Saldo_Despues,Observacion\n";
-                currentDetailedResult.logs.forEach(log => csvContent += `${log.rollNum},${log.dice},${log.bet},${log.resultType},${log.balanceBefore},${log.balanceAfter},"${log.note}"\n`);
+                window.simulationResults.forEach(r => csvContent += `"${r.strategy.name}",${r.strategy.type},${r.strategy.progression},${r.netProfit.toFixed(2)},${r.maxDrawdown.toFixed(2)},${r.winRate.toFixed(2)},${r.status}\n`);
+            } else if(type === 'detail' && window.currentDetailedResult) {
+                csvContent += `Simulacion: ${window.currentDetailedResult.strategy.name}\n\n`;
+                csvContent += "Tirada_Num,Dado,Apuesta_Total,Resultado,Neto,Saldo_Antes,Saldo_Despues,Observacion\n";
+                window.currentDetailedResult.logs.forEach(log => csvContent += `${log.rollNum},${log.dice},${log.bet},${log.resultType},${log.netChange},${log.balanceBefore},${log.balanceAfter},"${log.note}"\n`);
             }
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
@@ -1328,6 +1141,163 @@
             link.setAttribute("download", `craps_export_${type}_${new Date().getTime()}.csv`);
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         };
+
+        // Iniciar UI Inmediatamente sin importar la Nube
+        document.addEventListener("DOMContentLoaded", () => {
+            window.initStrategyDropdown();
+        });
+    </script>
+
+    <!-- SCRIPT 2: CONEXIÓN A LA NUBE FIREBASE (Independiente) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBBe8yh9Q7U6E4K9owKPtCPjWBZ8E7-cFE",
+            authDomain: "craps-197ad.firebaseapp.com",
+            projectId: "craps-197ad",
+            storageBucket: "craps-197ad.firebasestorage.app",
+            messagingSenderId: "10940191891",
+            appId: "1:10940191891:web:bec4739038a8b933376966",
+            measurementId: "G-T5WMDFJE2G"
+        };
+        
+        const appId = 'craps-lab-pro-app';
+        let app, auth, db, currentUser;
+
+        async function initFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                await signInAnonymously(auth).catch(() => console.warn("Autenticación anónima fallida."));
+
+                onAuthStateChanged(auth, async (user) => {
+                    currentUser = user;
+                    if(user) {
+                        document.getElementById('user-uid-display').innerText = user.uid.substring(0, 6) + '...';
+                        document.getElementById('cloud-status-indicator').innerText = '🟢 Sincronizado';
+                        
+                        // Cargar Configuración
+                        const configSnap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config'));
+                        if(configSnap.exists()) {
+                            Object.assign(window.config, configSnap.data());
+                            document.getElementById('cfg-bankroll').value = window.config.bankroll;
+                            document.getElementById('cfg-basebet').value = window.config.baseBet;
+                            document.getElementById('cfg-target').value = window.config.targetProfit;
+                            document.getElementById('cfg-stoploss').value = window.config.stopLoss;
+                            document.getElementById('cfg-use-limits').checked = window.config.useLimits;
+                        }
+
+                        // Escuchar Historial Global
+                        onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'craps_sessions'), (snapshot) => {
+                            window.cloudSessions = [];
+                            snapshot.forEach(d => window.cloudSessions.push({ id: d.id, ...d.data() }));
+                            document.getElementById('global-badge').innerText = window.cloudSessions.length;
+                            
+                            // Renderizar Tablas
+                            renderSavedSequences(window.cloudSessions);
+                            processGlobalHistory(window.cloudSessions);
+                        });
+
+                        // Conectar Ganchos para guardar en la nube
+                        window.saveConfig = async function() {
+                            window.config.bankroll = parseFloat(document.getElementById('cfg-bankroll').value);
+                            window.config.baseBet = parseFloat(document.getElementById('cfg-basebet').value);
+                            window.config.targetProfit = parseFloat(document.getElementById('cfg-target').value);
+                            window.config.stopLoss = parseFloat(document.getElementById('cfg-stoploss').value);
+                            window.config.useLimits = document.getElementById('cfg-use-limits').checked;
+                            await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config'), window.config);
+                            window.showToast("Configuración guardada en la Nube.");
+                        };
+
+                        window.cloudHooks.saveSequence = async (seqStr) => {
+                            await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'last_sequence'), { sequence: seqStr });
+                        };
+
+                        window.cloudHooks.saveSession = async (results) => {
+                            if(results.length === 0) return;
+                            const sessionData = {
+                                timestamp: Date.now(), rollsCount: window.validSequence.length, sequence: window.validSequence.join(','), 
+                                bestStrategyId: results[0].strategy.id, bestStrategyName: results[0].strategy.name, bestStrategyProfit: results[0].netProfit,
+                                strategies: results.slice(0, 50).map(r => ({ id: r.strategy.id, name: r.strategy.name, netProfit: r.netProfit, winRate: r.winRate }))
+                            };
+                            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'craps_sessions'), sessionData);
+                            window.showToast("Sesión respaldada en la nube.");
+                        };
+
+                        window.executeClearHistory = async () => {
+                            window.closeModal('confirm-modal');
+                            window.showToast("Borrando historial de la nube...", "warning");
+                            const snap = await getDocs(collection(db, 'artifacts', appId, 'users', user.uid, 'craps_sessions'));
+                            const promises = [];
+                            snap.forEach(d => promises.push(deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'craps_sessions', d.id))));
+                            await Promise.all(promises);
+                            window.showToast("Historial borrado exitosamente.", "success");
+                        };
+                    } else {
+                        document.getElementById('cloud-status-indicator').innerText = '🔴 Nube Offline';
+                    }
+                });
+            } catch (err) {
+                console.error("Firebase Offline:", err);
+                document.getElementById('cloud-status-indicator').innerText = '🔴 Nube Bloqueada';
+            }
+        }
+
+        // Funciones auxiliares de Renderizado para la nube
+        function renderSavedSequences(sessions) {
+            const tbody = document.getElementById('saved-sequences-body');
+            tbody.innerHTML = '';
+            if(sessions.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-muted" style="text-align:center; padding: 2rem;">Aún no tienes secuencias guardadas.</td></tr>'; return; }
+            const sorted = [...sessions].sort((a,b) => b.timestamp - a.timestamp);
+            sorted.forEach(s => {
+                const profitText = s.bestStrategyProfit >= 0 ? `(+S/ ${s.bestStrategyProfit.toFixed(2)})` : `(-S/ ${Math.abs(s.bestStrategyProfit).toFixed(2)})`;
+                tbody.innerHTML += `<tr><td>${new Date(s.timestamp).toLocaleString()}</td><td>${s.rollsCount || 0}</td>
+                <td style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">${s.sequence ? s.sequence.substring(0, 25) + '...' : ''}</td>
+                <td class="${s.bestStrategyProfit >= 0 ? 'text-success' : 'text-danger'}" style="font-weight: 500;">${s.bestStrategyName || 'Desconocida'} <br><span style="font-size:0.8rem">${profitText}</span></td>
+                <td><button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.85rem;" onclick="window.reloadCloudSequence('${s.id}')">🔄 Cargar</button></td></tr>`;
+            });
+        }
+        
+        window.reloadCloudSequence = function(sessionId) {
+            const session = window.cloudSessions.find(s => s.id === sessionId);
+            if(session && session.sequence) {
+                document.getElementById('rawInput').value = session.sequence;
+                window.processInput(false); 
+                window.showToast("Secuencia cargada correctamente.");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+
+        function processGlobalHistory(sessions) {
+            let globalAggregated = {}, totalRollsAllTime = 0;
+            sessions.forEach(session => {
+                totalRollsAllTime += session.rollsCount || 0;
+                session.strategies.forEach(s => {
+                    if(!globalAggregated[s.id]) globalAggregated[s.id] = { id: s.id, name: s.name, totalNetProfit: 0, timesFirst: 0, sumWinRate: 0, count: 0 };
+                    globalAggregated[s.id].totalNetProfit += s.netProfit; globalAggregated[s.id].sumWinRate += s.winRate; globalAggregated[s.id].count += 1;
+                    if (session.bestStrategyId === s.id) globalAggregated[s.id].timesFirst += 1;
+                });
+            });
+            const ranking = Object.values(globalAggregated).map(s => ({ ...s, avgWinRate: s.sumWinRate / s.count })).sort((a, b) => b.totalNetProfit - a.totalNetProfit);
+            
+            document.getElementById('global-summary-cards').innerHTML = `<div class="card"><div class="card-title">Sesiones Jugadas</div><div class="stat-value text-main">${sessions.length}</div></div>
+                <div class="card"><div class="card-title">Tiradas Analizadas</div><div class="stat-value text-accent">${totalRollsAllTime}</div></div>
+                <div class="card highlight-card success"><div class="card-title">👑 Mejor de Todos los Tiempos</div><div class="stat-value text-success">${ranking.length > 0 ? '+S/'+ranking[0].totalNetProfit.toFixed(2) : 'N/A'}</div><div class="stat-sub"><strong>${ranking.length > 0 ? ranking[0].name : 'Ninguna'}</strong></div></div>`;
+
+            const tbody = document.getElementById('global-ranking-body');
+            tbody.innerHTML = '';
+            ranking.forEach((r, i) => {
+                tbody.innerHTML += `<tr><td>#${i+1}</td><td style="font-weight:bold;">${r.name}</td><td class="${r.totalNetProfit >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">${r.totalNetProfit >= 0 ? '+' : ''}S/ ${r.totalNetProfit.toFixed(2)}</td><td>${r.avgWinRate.toFixed(1)}%</td><td><span class="badge" style="background: ${r.timesFirst > 0 ? 'var(--warning)' : 'var(--bg-panel)'}; color: ${r.timesFirst > 0 ? '#000' : 'var(--text-muted)'}">${r.timesFirst} veces</span></td></tr>`;
+            });
+        }
+
+        initFirebase();
+        window.promptClearHistory = () => window.openModal('confirm-modal');
     </script>
 </body>
 </html>
