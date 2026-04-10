@@ -708,11 +708,11 @@
                 {name: "6 y 8 (Inside)", nums: [6,8], text: "Sitio 6 y 8 simultáneos."},
                 {name: "5 y 9", nums: [5,9], text: "Sitio 5 y 9 simultáneos."},
                 {name: "4 y 10 (Outside)", nums: [4,10], text: "Sitio 4 y 10 simultáneos."},
-                {name: "Inside Completo", nums: [5,6,8,9], text: "Cubre los números centrales: 5, 6, 8 y 9. Cuesta 4 unidades."},
-                {name: "Outside Completo", nums: [4,5,9,10], text: "Cubre los extremos: 4, 5, 9 y 10. Cuesta 4 unidades."},
-                {name: "Across (Todos)", nums: [4,5,6,8,9,10], text: "Cubre todos los sitios. Cuesta 6 unidades."},
-                {name: "Pares", nums: [4,6,8,10], text: "Sitios pares: 4, 6, 8 y 10. Cuesta 4 unidades."},
-                {name: "Hierro Cruz", nums: [5,6,8], special: 'ironcross', text: "Iron Cross Completo (5,6,8 + Field). Cuesta 4 unidades."}
+                {name: "Inside Completo (5, 6, 8, 9)", nums: [5,6,8,9], text: "Cubre los números centrales: 5, 6, 8 y 9. Cuesta 4 unidades."},
+                {name: "Outside Completo (4, 5, 9, 10)", nums: [4,5,9,10], text: "Cubre los extremos: 4, 5, 9 y 10. Cuesta 4 unidades."},
+                {name: "Across (4, 5, 6, 8, 9, 10)", nums: [4,5,6,8,9,10], text: "Cubre todos los sitios. Cuesta 6 unidades."},
+                {name: "Pares (4, 6, 8, 10)", nums: [4,6,8,10], text: "Sitios pares: 4, 6, 8 y 10. Cuesta 4 unidades."},
+                {name: "Hierro Cruz (5, 6, 8 + Field)", nums: [5,6,8], special: 'ironcross', text: "Iron Cross Completo (5,6,8 + Field). Cuesta 4 unidades."}
             ];
 
             combos.forEach(c => {
@@ -1008,12 +1008,13 @@
             const allStrats = window.generateAllStrategies();
             select.innerHTML = '';
             
-            const term = searchTerm.toLowerCase();
+            // Convertimos la búsqueda en palabras clave separadas para que encuentre "5 6 8 9" o "5,6,8,9"
+            const termParts = searchTerm.toLowerCase().replace(/,/g, ' ').split(/\s+/).filter(t => t.length > 0);
             
             const categories = {
                 'Apuestas Básicas y Proposiciones': s => ['pass', 'dontpass', 'field', 'single'].includes(s.type),
                 'Sitios Individuales (1 Número)': s => s.type === 'place' && s.nums && s.nums.length === 1,
-                'Combos Famosos (Sistemas)': s => ['ironcross'].includes(s.type) || (s.type === 'place' && (s.name.includes("Inside") || s.name.includes("Outside") || s.name.includes("Across") || s.name.includes("Pares") || s.name.includes("5 y 9"))),
+                'Combos Famosos (Sistemas)': s => ['ironcross'].includes(s.type) || (s.type === 'place' && (s.name.includes("Inside") || s.name.includes("Outside") || s.name.includes("Across") || s.name.includes("Pares") || s.name.includes("5 y 9") || s.name.includes("6 y 8"))),
                 'Pares Generados (2 Números)': s => s.type === 'place' && s.nums && s.nums.length === 2 && s.id.startsWith("auto_combo"),
                 'Tríadas Generadas (3 Números)': s => s.type === 'place' && s.nums && s.nums.length === 3 && s.id.startsWith("auto_combo"),
                 'Cuartetos Generados (4 Números)': s => s.type === 'place' && s.nums && s.nums.length === 4 && s.id.startsWith("auto_combo")
@@ -1022,7 +1023,13 @@
             let foundAny = false;
 
             for(let cat in categories) {
-                const stratsInCategory = allStrats.filter(categories[cat]).filter(s => s.name.toLowerCase().includes(term));
+                const stratsInCategory = allStrats.filter(categories[cat]).filter(s => {
+                    if (termParts.length === 0) return true;
+                    // Juntamos el nombre y los números de la estrategia para la búsqueda
+                    const searchableText = (s.name + " " + (s.nums ? s.nums.join(' ') : '')).toLowerCase();
+                    // Verificamos que TODOS los números o palabras buscadas estén en la estrategia
+                    return termParts.every(t => searchableText.includes(t));
+                });
                 
                 if (stratsInCategory.length > 0) {
                     foundAny = true;
