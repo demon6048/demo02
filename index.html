@@ -268,11 +268,15 @@
                     <div class="mt-2 p-4" style="background: rgba(139, 92, 246, 0.1); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.3);">
                         <h3 style="color: var(--accent);">🎯 Probar y Visualizar Estrategia Específica</h3>
                         <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Elige una estrategia para "pintar" tus resultados arriba. <span style="color:var(--success);">Verde = Ganancia</span>, <span style="color:var(--danger);">Rojo = Pérdida</span>.</p>
+                        
+                        <!-- NUEVO: BUSCADOR DE ESTRATEGIAS -->
                         <div class="form-group mb-1">
+                            <input type="text" id="strategy-search" placeholder="🔍 Buscar jugada (ej. Across, Paroli, 6 y 8)..." onkeyup="window.filterStrategies()" style="margin-bottom: 8px; border-color: var(--accent);">
                             <select id="manual-strategy-select" style="width: 100%; font-size: 0.95rem; background: var(--bg-panel);">
                                 <option value="">Cargando estrategias...</option>
                             </select>
                         </div>
+                        
                         <div class="grid-2">
                             <button class="btn btn-outline" style="border-color: var(--accent); color: var(--text-main);" onclick="window.visualizeStrategy()" id="btn-visualize-single">
                                 🎨 Pintar Secuencia
@@ -962,10 +966,12 @@
         };
 
         // Actualización de Vistas
-        window.initStrategyDropdown = function() {
+        window.initStrategyDropdown = function(searchTerm = '') {
             const select = document.getElementById('manual-strategy-select');
             const allStrats = window.generateAllStrategies();
             select.innerHTML = '';
+            
+            const term = searchTerm.toLowerCase();
             
             const categories = {
                 'Apuestas Básicas y Proposiciones': s => ['pass', 'dontpass', 'field', 'single'].includes(s.type),
@@ -975,17 +981,38 @@
                 'Tríadas Generadas (3 Números)': s => s.type === 'place' && s.nums.length === 3 && s.id.startsWith("auto_combo")
             };
 
+            let foundAny = false;
+
             for(let cat in categories) {
-                const optgroup = document.createElement('optgroup');
-                optgroup.label = `--- ${cat} ---`;
-                allStrats.filter(categories[cat]).forEach(strat => {
-                    const opt = document.createElement('option');
-                    opt.value = strat.id;
-                    opt.textContent = strat.name;
-                    optgroup.appendChild(opt);
-                });
-                select.appendChild(optgroup);
+                // Filtramos por categoría Y por el término de búsqueda
+                const stratsInCategory = allStrats.filter(categories[cat]).filter(s => s.name.toLowerCase().includes(term));
+                
+                if (stratsInCategory.length > 0) {
+                    foundAny = true;
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = `--- ${cat} ---`;
+                    stratsInCategory.forEach(strat => {
+                        const opt = document.createElement('option');
+                        opt.value = strat.id;
+                        opt.textContent = strat.name;
+                        optgroup.appendChild(opt);
+                    });
+                    select.appendChild(optgroup);
+                }
             }
+
+            // Si no se encuentra nada con la búsqueda
+            if (!foundAny) {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.textContent = "No se encontraron estrategias...";
+                select.appendChild(opt);
+            }
+        };
+
+        window.filterStrategies = function() {
+            const term = document.getElementById('strategy-search').value;
+            window.initStrategyDropdown(term);
         };
 
         window.updateAnalysisTab = function() {
