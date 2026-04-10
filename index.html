@@ -258,9 +258,9 @@
 
                     <div class="mt-2 p-4" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
                         <h3>🚀 Motor de Búsqueda Masivo</h3>
-                        <p style="font-size: 0.9rem;">Prueba +300 combinaciones a la vez y te muestra el <strong>Top 10 de las más rentables</strong>. Se guardarán en la nube para estadísticas históricas.</p>
+                        <p style="font-size: 0.9rem;">Prueba +300 combinaciones a la vez y te muestra el <strong>Top 14 de las más rentables</strong>. Se guardarán en la nube para estadísticas históricas.</p>
                         <button class="btn btn-accent" style="width: 100%; font-size: 1.05rem; padding: 1rem;" onclick="window.runFullAnalysis()" id="btn-run-analysis">
-                            🔍 Buscar el Top 10 de Mejores Estrategias
+                            🔍 Buscar el Top 14 de Mejores Estrategias
                         </button>
                     </div>
                 </div>
@@ -425,13 +425,13 @@
         <!-- TAB: DASHBOARD (BEST STRATEGIES) -->
         <div id="tab-dashboard" class="tab-pane">
             <div class="flex-between">
-                <h1>Resultados: Top 10 de esta Sesión</h1>
+                <h1>Resultados: Top 14 de esta Sesión</h1>
                 <button class="btn btn-outline" onclick="window.switchTab('ranking')">Ver Ranking Completo (+300) ➔</button>
             </div>
             
             <div class="grid-3" id="top-cards-container">
                 <div class="card" style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">
-                    Aún no has corrido ninguna simulación en esta sesión. Pega tus números y presiona "Buscar el Top 10".
+                    Aún no has corrido ninguna simulación en esta sesión. Pega tus números y presiona "Buscar el Top 14".
                 </div>
             </div>
         </div>
@@ -543,7 +543,7 @@
                                 <th>Estrategia Base</th>
                                 <th class="text-success">Ganancia Neta Acumulada (S/)</th>
                                 <th>Win Rate Promedio</th>
-                                <th>Veces en Top 10</th>
+                                <th>Veces en Top 14</th>
                                 <th>Veces #1</th>
                             </tr>
                         </thead>
@@ -1087,10 +1087,10 @@
         window.renderDashboard = function() {
             if(window.simulationResults.length === 0) return;
             
-            const top10 = window.simulationResults.slice(0, 10);
+            const top14 = window.simulationResults.slice(0, 14);
             let html = '';
             
-            top10.forEach((r, index) => {
+            top14.forEach((r, index) => {
                 let badge = index === 0 ? '🏆 #1 Mejor Ganancia' : (index === 1 ? '🥈 #2 Lugar' : (index === 2 ? '🥉 #3 Lugar' : `🏅 #${index+1} Lugar`));
                 let colorClass = index === 0 ? 'success' : (index === 1 ? 'accent' : (index === 2 ? 'warning' : 'primary'));
                 if(r.netProfit < 0) colorClass = 'danger'; // Por si todas perdieron
@@ -1384,13 +1384,13 @@
                 }
 
                 session.strategies.forEach((s, index) => {
-                    if(!globalAggregated[s.id]) globalAggregated[s.id] = { id: s.id, name: s.name, totalNetProfit: 0, timesFirst: 0, timesInTop10: 0, sumWinRate: 0, count: 0 };
+                    if(!globalAggregated[s.id]) globalAggregated[s.id] = { id: s.id, name: s.name, totalNetProfit: 0, timesFirst: 0, timesInTop14: 0, sumWinRate: 0, count: 0 };
                     globalAggregated[s.id].totalNetProfit += s.netProfit; 
                     globalAggregated[s.id].sumWinRate += s.winRate; 
                     globalAggregated[s.id].count += 1;
                     
                     if (session.bestStrategyId === s.id) globalAggregated[s.id].timesFirst += 1;
-                    if (index < 10) globalAggregated[s.id].timesInTop10 += 1; // Rastrear apariciones en el Top 10
+                    if (index < 14) globalAggregated[s.id].timesInTop14 += 1; // Rastrear apariciones en el Top 14
                 });
             });
             const ranking = Object.values(globalAggregated).map(s => ({ ...s, avgWinRate: s.sumWinRate / s.count })).sort((a, b) => b.totalNetProfit - a.totalNetProfit);
@@ -1407,7 +1407,7 @@
                     <td style="font-weight:bold;">${r.name}</td>
                     <td class="${r.totalNetProfit >= 0 ? 'text-success' : 'text-danger'} font-weight-bold">${r.totalNetProfit >= 0 ? '+' : ''}S/ ${r.totalNetProfit.toFixed(2)}</td>
                     <td>${r.avgWinRate.toFixed(1)}%</td>
-                    <td><span class="badge" style="background: ${r.timesInTop10 > 0 ? 'var(--primary)' : 'var(--bg-panel)'}; color: ${r.timesInTop10 > 0 ? '#fff' : 'var(--text-muted)'}">${r.timesInTop10} veces</span></td>
+                    <td><span class="badge" style="background: ${r.timesInTop14 > 0 ? 'var(--primary)' : 'var(--bg-panel)'}; color: ${r.timesInTop14 > 0 ? '#fff' : 'var(--text-muted)'}">${r.timesInTop14} veces</span></td>
                     <td><span class="badge" style="background: ${r.timesFirst > 0 ? 'var(--warning)' : 'var(--bg-panel)'}; color: ${r.timesFirst > 0 ? '#000' : 'var(--text-muted)'}">${r.timesFirst} veces</span></td>
                 </tr>`;
             });
